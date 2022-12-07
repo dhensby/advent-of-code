@@ -49,7 +49,7 @@ program.addCommand(
       console.log('Creating folder for challenge day', chosenDay);
       await mkdir(`./day-${chosenDay}`);
       await Promise.all([
-        ['index.js', 'module.exports = (data) =>{\n}'],
+        ['index.js', 'module.exports = (data) => {\n}'],
         ['input.txt', ''],
         ['test-input.txt', ''],
       ].map(([fileName, data]) => writeFile(`./day-${chosenDay}/${fileName}`, data)));
