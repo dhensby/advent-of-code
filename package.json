@@ -7,6 +7,7 @@
   },
   "scripts": {
     "create": "node ./index.js create",
+    "lint": "eslint .",
     "solve": "node ./index.js run"
   },
   "repository": {
@@ -20,5 +21,10 @@
   "dependencies": {
     "commander": "^9.4.1",
     "lodash.template": "^4.5.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.29.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.26.0"
   }
 }
