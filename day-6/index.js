@@ -1,5 +1,3 @@
-const readFileLines = require('../utils');
-
 // This is the main logic for solving the problem.
 // We take data input (a string of "seemingly random"
 // chars, process it looking for `num` unique items in a row
@@ -32,8 +30,7 @@ function findUniqueChars(data, num = 4) {
     }
 }
 
-(async () => {
-    const data = await readFileLines('./input.txt');
+module.exports = (data) => {
     // although there input data is only one line, I've iterated over all the lines
     // so that the test inputs can be used and output in one go
     const startOfPacket = data.map((input) => {
@@ -42,8 +39,8 @@ function findUniqueChars(data, num = 4) {
     const startOfMessage = data.map((input) => {
         return findUniqueChars(input, 14);
     });
-    console.log({
-        startOfPacket,
-        startOfMessage,
-    });
-})().catch(console.error);
+    return {
+        part1: startOfPacket,
+        part2: startOfMessage,
+    };
+};

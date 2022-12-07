@@ -1,0 +1,24 @@
+{
+  "name": "advent-of-code",
+  "version": "1.0.0",
+  "main": "index.js",
+  "bin": {
+    "aoc": "index.js"
+  },
+  "scripts": {
+    "create": "node ./index.js create",
+    "solve": "node ./index.js run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dhensby/advent-of-code.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dhensby/advent-of-code/issues"
+  },
+  "homepage": "https://github.com/dhensby/advent-of-code#readme",
+  "dependencies": {
+    "commander": "^9.4.1",
+    "lodash.template": "^4.5.0"
+  }
+}

@@ -1,5 +1,3 @@
-const readFileLines = require('../utils');
-
 const OPPONENT_MOVES = ['A', 'B', 'C'];
 
 const PLAYER_MOVES = ['X', 'Y', 'Z'];
@@ -36,8 +34,7 @@ function roundMove(opponent, result) {
     }
 }
 
-(async () => {
-    const data = await readFileLines('./input.txt');
+module.exports = (data) => {
     // split the lines into tuples
     const gamePairs = data.map((row) => row.split(' '));
 
@@ -54,7 +51,6 @@ function roundMove(opponent, result) {
         }
         return sum + roundScore;
     }, 0);
-    console.log(score);
 
     const nextScore = gamePairs.reduce((sum, [opponent, outcome]) => {
         const player = roundMove(opponent, outcome);
@@ -70,5 +66,8 @@ function roundMove(opponent, result) {
         }
         return sum + roundScore;
     }, 0);
-    console.log(nextScore);
-})().catch(console.error);
+    return {
+        part1: score,
+        part2: nextScore,
+    };
+}

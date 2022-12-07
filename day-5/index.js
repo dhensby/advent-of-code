@@ -1,5 +1,3 @@
-const readFileLines = require('../utils');
-
 // Logic for moving "crates" from one stack to another
 // the logic can operate in "incremental" mode (move one crate
 // at a time) or not (move all crates at once)
@@ -23,8 +21,7 @@ function moveCrates(stacks, moves, incremental = true) {
     return stacks;
 }
 
-(async () => {
-    const data = await readFileLines('./input.txt');
+module.exports = (data) => {
     const moves = [];
     const stacks = [];
     let isParsingStack = true;
@@ -82,8 +79,8 @@ function moveCrates(stacks, moves, incremental = true) {
     // stack (ie: the top item) and then use regex to extract the letter from the `[ ]` illustration.
     // There are some assumptions that there will always be an item in every stack, but that could
     // easily be worked out if needed.
-    console.log(
-        rearranged.map((stack) => stack[stack.length - 1].match(/\[([A-Z])\]/)[1]).join(''),
-        rearranged2.map((stack) => stack[stack.length - 1].match(/\[([A-Z])\]/)[1]).join(''),
-    );
-})().catch(console.error);
+    return {
+        part1: rearranged.map((stack) => stack[stack.length - 1].match(/\[([A-Z])\]/)[1]).join(''),
+        part2: rearranged2.map((stack) => stack[stack.length - 1].match(/\[([A-Z])\]/)[1]).join(''),
+    };
+}

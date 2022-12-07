@@ -1,5 +1,3 @@
-const readFileLines = require('../utils');
-
 const ITEMS = [
     'a', 'b', 'c', 'd', 'e', 'f',
     'g', 'h', 'i', 'j', 'k', 'l',
@@ -12,8 +10,7 @@ const ITEMS = [
     'W', 'X', 'Y', 'Z',
 ];
 
-(async () => {
-    const data = await readFileLines('./input.txt');
+module.exports = (data) => {
     const priorityScore = data.reduce((sum, items) => {
         if (items.length % 2 !== 0) {
             throw new Error('String is not even in length');
@@ -35,5 +32,8 @@ const ITEMS = [
         });
         groupScore += ITEMS.indexOf(common) + 1;
     }
-    console.log(priorityScore, groupScore);
-})().catch(console.error);
+    return {
+        part1: priorityScore,
+        part2: groupScore,
+    };
+}

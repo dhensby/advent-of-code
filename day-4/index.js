@@ -1,8 +1,5 @@
-const readFileLines = require('../utils');
-
-(async () => {
-    const data = await readFileLines('./input.txt');
-    const result = data.reduce(([overlap, encompass], pair) => {
+module.exports = (data) => {
+    const [part1, part2] = data.reduce(([overlap, encompass], pair) => {
         // clean the data into start/end pairs of ints, each pair ordered by the interval length
         const [first, second] = pair.split(',').map((pair) => {
             return pair.split('-').map((v) => parseInt(v, 10));
@@ -18,5 +15,8 @@ const readFileLines = require('../utils');
         }
         return [overlap, encompass];
     }, [0, 0]);
-    console.log(result);
-})().catch(console.error);
+    return {
+        part1,
+        part2,
+    };
+};

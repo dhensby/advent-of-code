@@ -1,7 +1,4 @@
-const readFileLines = require('../utils');
-
-(async () => {
-    const data = await readFileLines('./input.txt');
+module.exports = (data) => {
     // work out the totals for each group in the input
     const totals = data.reduce((sums, next) => {
         if (!next) {
@@ -31,5 +28,8 @@ const readFileLines = require('../utils');
         }
         return maxima;
     }, [0, 0, 0]);
-    console.log(top3[0], top3.reduce((sum, next) => sum + next, 0));
-})().catch(console.error);
+    return {
+        part1: top3[0],
+        part2: top3.reduce((sum, next) => sum + next, 0),
+    };
+}
