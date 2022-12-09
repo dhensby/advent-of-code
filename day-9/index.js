@@ -1,19 +1,30 @@
-// Conceptually we are moving points on a graph; the tail follows
-// the head whenever there is a gap between the head and tail.
-// As the manipulations can only be made in one direction at a time
-// we can make some assumptions, eg: if the head is more than 1 space
-// from the tail, the tail must move into the same "plane" (well, axis)
-// then it must move to one place "behind" the head, depending on the
-// direction on the axis we are moving, that's either the head value +1 or -1
+// Notes for part2
+// most of the optimisations for part one need to be undone;
+// instead each "step" needs to be applied one after the other to the next "knot" in the rope.
+// eg, if the head moves up 5, it should move up 1 place, calculate the next knots position (recursively), breaking when
+// no change is needed. Then move the next place, recalculate for the knots, and so on...
+
+function printState(state, height = 5, width = 6) {
+  for (let j = height - 1; j >= 0; j -= 1) {
+    for (let k = 0; k < width; k +=1) {
+      const inCoord = state.find(([x, y]) => x === k && y === j);
+      if (!inCoord) {
+        process.stdout.write('.');
+      } else {
+        const index = state.indexOf(inCoord);
+        process.stdout.write(index === 0 ? 'H' : index.toString());
+      }
+    }
+    process.stdout.write('\n');
+  }
+  process.stdout.write('\n');
+}
+
 module.exports = (data) => {
-  // use a `Set` to create a visit register for each unique position visited (x,y)
-  // initialise it with the starting position (0,0)
+  // create a list of states - each representing a "knot" in the rope
+  // each knot is represented by a tuple: its x, y coords
+  const state = Array.from(new Array(10).keys()).map(() => [0, 0]);
   const visitRegister = new Set().add('0,0');
-  // the state records the x,y coords for the head and the tail
-  const state = {
-    head: [0, 0],
-    tail: [0, 0],
-  };
   // loop over each instruction one by one
   for (let i = 0; i < data.length; i += 1) {
     // split the data element into its direction and number of places to move
@@ -25,42 +36,34 @@ module.exports = (data) => {
     // 'D' or 'L' directions move in the negative direction along their respective axis
     // we'll use this later to increment/decrement coordinate values
     const relativeDir = dir === 'D' || dir === 'L' ? -1 : 1;
-    // Firstly, we now know the head position
-    state.head[axis] += num * relativeDir;
-    // if the tail is more than 1 position away from the head, we need to move the tail
-    // we only need to worry about the current axis being manipulated
-    if (Math.abs(state.tail[axis] - state.head[axis]) > 1) {
-      // store our initial tail state for later comparison - we will manipulate this to work
-      // out how the tail moves around the grid
-      const intermittentState = [...state.tail];
-      // if the axis we *aren't* working on is different for the head and tail
-      // we must make them the same (the tail moves diagonally into place)
-      if (state.tail[(axis + 1) % 2] !== state.head[(axis + 1) % 2]) {
-        // move the tail into the correct position
-        state.tail[(axis + 1) % 2] = state.head[(axis + 1) % 2];
-        // update our intermittent state to mate the actual state
-        intermittentState[(axis + 1) % 2] = state.head[(axis + 1) % 2];
-        // because we move "diagonally" when we move across we also need to
-        // adjust the "initial" position
-        intermittentState[axis] += relativeDir;
+    // incrementally go through each coordinate to reach the destination
+    // going through all the following knots to move them incrementally (if needed)
+
+    console.log(`== ${dir} ${num} ==`);
+    for (let j = 0; j < num; j += 1) {
+      state[0][axis] += relativeDir;
+      for (let k = 1; k < state.length; k += 1) {
+        // if the current knot is within 1 of the one in front of it
+        // we can break out as no more moves need to happen
+        if (Math.abs(state[k][axis] - state[k - 1][axis]) <= 1 && Math.abs(state[k][(axis + 1) % 2] - state[k - 1][(axis + 1) % 2]) <= 1) {
+          break;
+        }
+        // we have to snap into the same row/column as the leading knot
+        // if we move over 1 away from it
+        if (Math.abs(state[k][axis] - state[k - 1][axis]) > 1) {
+          state[k][(axis + 1) % 2] = state[k - 1][(axis + 1) % 2];
+        }
+        // move the trailing knot one position along the access
+        state[k][axis] = state[k][axis] + relativeDir;
+        if (Math.abs(state[k][(axis + 1) % 2] - state[k - 1][(axis + 1) % 2]) > 1) {
+          state[k][(axis + 1) % 2] = state[k - 1][(axis + 1) % 2] - relativeDir;
+        }
+        if (k === state.length - 1) {
+          visitRegister.add(state[k].toString());
+        }
       }
-      // The tail will lag behind the head by 1 position - now we have recoded the *final*
-      // position of the tail and head
-      state.tail[axis] = state.head[axis] - relativeDir;
-      // To solve the first part of the puzzle, we actually need to work out the coordinates
-      // the tail has "moved through". This goes from the initial position to the final position
-      // recording each coordinate. I'm sure if I knew some graph theory I could solve
-      // this with a better algorithm
-      for (let j = intermittentState[axis]; j !== state.tail[axis]; j += 1 * relativeDir) {
-        intermittentState[axis] = j;
-        // record each coordinate in our register
-        visitRegister.add(intermittentState.toString());
-      }
+      printState(state);
     }
-    // make sure the final tail position has been stored in the register
-    visitRegister.add(state.tail.toString());
   }
-  return {
-    part1: visitRegister.size,
-  };
+  console.log(visitRegister, visitRegister.size);
 };
