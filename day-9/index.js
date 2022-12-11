@@ -4,20 +4,32 @@
 // eg, if the head moves up 5, it should move up 1 place, calculate the next knots position (recursively), breaking when
 // no change is needed. Then move the next place, recalculate for the knots, and so on...
 
-function printState(state, height = 5, width = 6) {
+let PRINT_QUEUE = Promise.resolve();
+
+function print(message) {
+  PRINT_QUEUE = PRINT_QUEUE.then(() => new Promise((resolve, reject) => {
+    process.stdout.write(message, (err) => err ? reject(err) : resolve());
+  }));
+}
+
+function printState(state, height = 5, width = 6, offsetX = 0, offsetY = 0) {
   for (let j = height - 1; j >= 0; j -= 1) {
     for (let k = 0; k < width; k +=1) {
-      const inCoord = state.find(([x, y]) => x === k && y === j);
+      const inCoord = state.find(([x, y]) => x === k - offsetX && y === j - offsetY);
       if (!inCoord) {
-        process.stdout.write('.');
+        if (k - offsetX === 0 && j - offsetY === 0) {
+          print('s');
+        } else {
+          print('.');
+        }
       } else {
         const index = state.indexOf(inCoord);
-        process.stdout.write(index === 0 ? 'H' : index.toString());
+        print(index === 0 ? 'H' : index.toString());
       }
     }
-    process.stdout.write('\n');
+    print('\n');
   }
-  process.stdout.write('\n');
+  print('\n');
 }
 
 module.exports = (data) => {
@@ -39,7 +51,7 @@ module.exports = (data) => {
     // incrementally go through each coordinate to reach the destination
     // going through all the following knots to move them incrementally (if needed)
 
-    console.log(`== ${dir} ${num} ==`);
+    print(`== ${dir} ${num} ==\n`);
     for (let j = 0; j < num; j += 1) {
       state[0][axis] += relativeDir;
       for (let k = 1; k < state.length; k += 1) {
@@ -60,7 +72,7 @@ module.exports = (data) => {
           visitRegister.add(state[k].toString());
         }
       }
-      printState(state);
+      printState(state, 21, 26, 11, 5);
     }
   }
   console.log(visitRegister, visitRegister.size);
