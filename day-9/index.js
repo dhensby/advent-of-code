@@ -50,14 +50,12 @@ module.exports = (data) => {
         }
         // we have to snap into the same row/column as the leading knot
         // if we move over 1 away from it
-        if (Math.abs(state[k][axis] - state[k - 1][axis]) > 1) {
-          state[k][(axis + 1) % 2] = state[k - 1][(axis + 1) % 2];
+        if ((Math.abs(state[k][axis] - state[k - 1][axis]) > 1 || Math.abs(state[k][(axis + 1) % 2] - state[k - 1][(axis + 1) % 2]) > 1) && state[k][(axis + 1) % 2] !== state[k - 1][(axis + 1) % 2]) {
+          const snapDir = state[k][(axis + 1) % 2] > state[k - 1][(axis + 1) % 2] ? -1 : + 1;
+          state[k][(axis + 1) % 2] = state[k][(axis + 1) % 2] + snapDir;
         }
         // move the trailing knot one position along the access
         state[k][axis] = state[k][axis] + relativeDir;
-        if (Math.abs(state[k][(axis + 1) % 2] - state[k - 1][(axis + 1) % 2]) > 1) {
-          state[k][(axis + 1) % 2] = state[k - 1][(axis + 1) % 2] - relativeDir;
-        }
         if (k === state.length - 1) {
           visitRegister.add(state[k].toString());
         }
