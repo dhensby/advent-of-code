@@ -10,7 +10,7 @@ const { Command, InvalidArgumentError } = require('commander');
 // helper for reading input data from files
 async function readFileLines(path) {
   const data = await readFile(path);
-  return data.toString().replace(/\s+$/, '').split('\n');
+  return data.toString().replace(/\s+$/, '').split(/\r?\n/);
 }
 
 function validateDay(val) {
