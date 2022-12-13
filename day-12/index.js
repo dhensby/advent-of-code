@@ -69,20 +69,32 @@ function shortestPathsBetween(graph, start, end) {
 }
 
 module.exports = (data) => {
+  // initial variable to store the point graph (ie: a map of points to all it's neighbours)
   const graph = [];
+  // a list of potential starting points (for part 2)
   const potentialStarts = [];
+  // start / end points for part1
   let start = null;
   let end = null;
+  // iterate over the map, point by point
   for (let i = 0; i < data.length; i += 1) {
     for (let j = 0; j < data[i].length; j += 1) {
+      // we can address every point uniquely by its effective
+      // "index" position in the grid
       const index = (i * data[i].length) + j;
+      // calculate the elevation value for the point
       const currentValue = pointToVal(data[i][j]);
+      // handle the Start and End points on the map
       if (data[i][j] === 'S') {
+        // this is a potential starting point ;)
         potentialStarts.push(index);
         start = index;
       } else if (data[i][j] === 'E') {
         end = index;
       }
+      // look at all the potential neighbours and eliminate any that
+      // are more than 1 higher than the current spot (we can't travel
+      // to those)
       const possibleNeighbors = [
         [j, i - 1], // up
         [j + 1, i], // right
@@ -90,11 +102,15 @@ module.exports = (data) => {
         [j - 1, i], // left
       ].filter(([x, y]) => {
         const point = data[y]?.[x];
+        // if there's a point (ie: we aren't off the map) and it's at most 1 higher
+        // than the current value, keep it
         return point && pointToVal(point) <= currentValue + 1;
       });
+      // record the potential starting points if they have any possible neighbours
       if (possibleNeighbors.length && data[i][j] === 'a') {
         potentialStarts.push(index);
       }
+      // store this point and its neighbour info in our graph
       graph[index] = possibleNeighbors.reduce((neighbours, [x, y]) => ({
         ...neighbours,
         [(y * data[y].length) + x]: 1,
