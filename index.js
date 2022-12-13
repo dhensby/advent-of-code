@@ -61,19 +61,20 @@ program.addCommand(
     .name('run')
     .description('Run a days code')
     .option('-t, --test', 'Run with test input', false)
-    .argument('day', 'The day of the challenge', validateDay)
+    .argument('[day]', 'The day of the challenge', validateDay)
     .action(async (day, opts) => {
       const dirs = await readdir('.');
       const existingDays = dirs.filter((name) => name.match(/^day-[0-9]+$/))
         .map((name) => parseInt(name.match(/^day-([0-9]+)$/)[1], 10))
-        .sort();
-      if (!existingDays.includes(day)) {
-        throw new InvalidArgumentError(`No program found for day-${day}`);
+        .sort((a, b) => a - b);
+      const chosenDay = day ?? existingDays[existingDays.length - 1];
+      if (!existingDays.includes(chosenDay)) {
+        throw new InvalidArgumentError(`No program found for day-${chosenDay}`);
       }
-      const dataFile = `./day-${day}/${opts.test ? 'test-' : ''}input.txt`;
+      const dataFile = `./day-${chosenDay}/${opts.test ? 'test-' : ''}input.txt`;
       const data = await readFileLines(dataFile);
       // eslint-disable-next-line global-require,import/no-dynamic-require
-      const action = require(`./day-${day}`);
+      const action = require(`./day-${chosenDay}`);
       const result = await action(data);
       if (result) {
         console.log(result);
