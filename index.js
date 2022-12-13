@@ -44,15 +44,15 @@ program.addCommand(
         .sort();
       const chosenDay = day ?? (Math.max(0, ...existingDays) + 1);
       if (existingDays.includes(chosenDay)) {
-        throw new InvalidArgumentError(`Folder already exists for day-${chosenDay}`);
+        throw new InvalidArgumentError(`Folder already exists for day-${chosenDay.toString().padStart(2, '0')}`);
       }
       console.log('Creating folder for challenge day', chosenDay);
-      await mkdir(`./day-${chosenDay}`);
+      await mkdir(`./day-${chosenDay.toString().padStart(2, '0')}`);
       await Promise.all([
         ['index.js', 'module.exports = (data) => {\n}'],
         ['input.txt', ''],
         ['test-input.txt', ''],
-      ].map(([fileName, data]) => writeFile(`./day-${chosenDay}/${fileName}`, data)));
+      ].map(([fileName, data]) => writeFile(`./day-${chosenDay.toString().padStart(2, '0')}/${fileName}`, data)));
     }),
 );
 
@@ -71,10 +71,10 @@ program.addCommand(
       if (!existingDays.includes(chosenDay)) {
         throw new InvalidArgumentError(`No program found for day-${chosenDay}`);
       }
-      const dataFile = `./day-${chosenDay}/${opts.test ? 'test-' : ''}input.txt`;
+      const dataFile = `./day-${chosenDay.toString().padStart(1, '0')}/${opts.test ? 'test-' : ''}input.txt`;
       const data = await readFileLines(dataFile);
       // eslint-disable-next-line global-require,import/no-dynamic-require
-      const action = require(`./day-${chosenDay}`);
+      const action = require(`./day-${chosenDay.toString().padStart(1, '0')}`);
       const result = await action(data);
       if (result) {
         console.log(result);
