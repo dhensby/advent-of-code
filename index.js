@@ -71,10 +71,10 @@ program.addCommand(
       if (!existingDays.includes(chosenDay)) {
         throw new InvalidArgumentError(`No program found for day-${chosenDay}`);
       }
-      const dataFile = `./day-${chosenDay.toString().padStart(1, '0')}/${opts.test ? 'test-' : ''}input.txt`;
+      const dataFile = `./day-${chosenDay.toString().padStart(2, '0')}/${opts.test ? 'test-' : ''}input.txt`;
       const data = await readFileLines(dataFile);
       // eslint-disable-next-line global-require,import/no-dynamic-require
-      const action = require(`./day-${chosenDay.toString().padStart(1, '0')}`);
+      const action = require(`./day-${chosenDay.toString().padStart(2, '0')}`);
       const result = await action(data);
       if (result) {
         console.log(result);
