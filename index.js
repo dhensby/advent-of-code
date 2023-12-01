@@ -25,6 +25,21 @@ function validateDay(val) {
   return intVal;
 }
 
+/**
+ *
+ * @param {string} day
+ * @param {boolean} test
+ * @returns {Promise<string[][]>}
+ */
+async function findInputForDay(day, test) {
+  if (test) {
+    const files = await readdir(`./day-${day}`);
+    const testFiles = files.filter((fileName) => fileName.startsWith('test-input'));
+    return Promise.all(testFiles.sort().map((fileName) => readFileLines(`./day-${day}/${fileName}`)));
+  }
+  return Promise.all([readFileLines(`./day-${day}/input.txt`)]);
+}
+
 const program = new Command();
 
 program.name('aoc')
@@ -51,7 +66,7 @@ program.addCommand(
       await Promise.all([
         ['index.js', 'module.exports = (data) => {\n}'],
         ['input.txt', ''],
-        ['test-input.txt', ''],
+        ['test-input-part1.txt', ''],
       ].map(([fileName, data]) => writeFile(`./day-${chosenDay.toString().padStart(2, '0')}/${fileName}`, data)));
     }),
 );
@@ -71,14 +86,17 @@ program.addCommand(
       if (!existingDays.includes(chosenDay)) {
         throw new InvalidArgumentError(`No program found for day-${chosenDay}`);
       }
-      const dataFile = `./day-${chosenDay.toString().padStart(2, '0')}/${opts.test ? 'test-' : ''}input.txt`;
-      const data = await readFileLines(dataFile);
+      const data = await findInputForDay(chosenDay.toString().padStart(2, '0'), opts.test);
       // eslint-disable-next-line global-require,import/no-dynamic-require
       const action = require(`./day-${chosenDay.toString().padStart(2, '0')}`);
-      const result = await action(data);
-      if (result) {
-        console.log(result);
+      const results = {};
+      if (action.part1) {
+        results.part1 = await action.part1(data[0]);
       }
+      if (action.part2) {
+        results.part2 = await action.part2(data[data.length - 1]);
+      }
+      console.log(results);
     }),
 );
 

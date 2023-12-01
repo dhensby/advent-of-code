@@ -46,20 +46,13 @@ function extractDigits(text, justDigits = false) {
   return [firstDigit, lastDigit];
 }
 
-/**
- * @param {Array<string>} data
- */
-module.exports = (data) => {
-  const part1 = data.reduce((sum, next) => {
+module.exports = {
+  part1: (data) => data.reduce((sum, next) => {
     const digits = extractDigits(next, true);
     return sum + parseInt(`${digits[0]}${digits[digits.length - 1]}`, 10);
-  }, 0);
-  const part2 = data.reduce((sum, next) => {
+  }, 0),
+  part2: (data) => data.reduce((sum, next) => {
     const digits = extractDigits(next);
     return sum + parseInt(`${digits[0]}${digits[digits.length - 1]}`, 10);
-  }, 0);
-  return {
-    part1,
-    part2,
-  };
+  }, 0),
 };
