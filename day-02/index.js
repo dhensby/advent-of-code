@@ -1,7 +1,9 @@
 /**
+ * Parse our input into "game" objects. We can then take an OOP approach to the
+ * problem
  *
  * @param {Array<string>} data
- * @returns {Array<{[key: string]: number}>}
+ * @returns {Array<{id: number, sets: Array<{[key: string]: number}>, possible({[key: string]: number}): boolean, minimumContents(): {[key: string]: number}}>}
  */
 function parseInput (data) {
   return data.map((line) => {
@@ -42,6 +44,7 @@ function parseInput (data) {
 module.exports = {
   part1: (data) => {
     const games = parseInput(data)
+    // work out the sum of the game IDs that are possible with the given set of colours
     return games.reduce((sum, game) => {
       if (game.possible({
         red: 12,
@@ -55,6 +58,7 @@ module.exports = {
   },
   part2: (data) => {
     const games = parseInput(data)
+    // add up all the "powers" of the games' minimum required contents
     return games.reduce((sum, game) => {
       const power = Object.values(game.minimumContents())
         .reduce((product, next) => product * next, 1)
