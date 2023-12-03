@@ -2,6 +2,18 @@ function parseInput (lines) {
   return lines.map((line) => line.trim().split(''))
 }
 
+function parseInputPart2 (lines) {
+  return lines.map((line) => line.trim().split('').map((char) => {
+    if (char === '*') {
+      return char
+    }
+    if (char === '.' || Number.isNaN(parseInt(char, 10))) {
+      return '.'
+    }
+    return parseInt(char, 10)
+  }))
+}
+
 function getNumFromPoint (lines, line, col) {
   let char = lines[line][col]
   if (char === '.') {
@@ -65,7 +77,7 @@ module.exports = {
               return rowNum === point[0] && colNum === point[1]
             })) {
               return sum
-            };
+            }
             const [num, seen] = getNumFromPoint(lines, rowNum, colNum)
             checked.push(...seen)
             return sum + num
@@ -76,5 +88,50 @@ module.exports = {
     return total
   },
   part2: (data) => {
+    const lines = parseInputPart2(data)
+    let checked = []
+    let total = 0
+    for (let i = 0; i < lines.length; i += 1) {
+      const row = lines[i]
+      for (let j = 0; j < row.length; j += 1) {
+        const char = row[j]
+        if (char === '.') {
+          continue
+        }
+        if (char === '*') {
+          checked = []
+          // find adjacent values and multiply
+          const adjacent = [
+            [j - 1, i - 1],
+            [j - 1, i],
+            [j - 1, i + 1],
+            [j, i - 1],
+            [j, i + 1],
+            [j + 1, i - 1],
+            [j + 1, i],
+            [j + 1, i + 1]
+          ].filter(([colNum, rowNum]) => {
+            // remove any points where the index is < 0 or > max
+            return rowNum >= 0 && rowNum < lines.length && colNum >= 0 && colNum < row.length && typeof lines[rowNum][colNum] === 'number'
+          })
+          const gears = adjacent.reduce((soFar, [colNum, rowNum]) => {
+            // if we have checked the point before, don't check again
+            if (checked.some((point) => {
+              return rowNum === point[0] && colNum === point[1]
+            })) {
+              return soFar
+            }
+            const [num, seen] = getNumFromPoint(lines, rowNum, colNum)
+            checked.push(...seen)
+            soFar.push(num)
+            return soFar
+          }, [])
+          if (gears.length === 2) {
+            total += gears[0] * gears[1]
+          }
+        }
+      }
+    }
+    return total
   }
 }
