@@ -7,7 +7,7 @@
   },
   "scripts": {
     "create": "node ./index.js create",
-    "lint": "eslint .",
+    "lint": "standard",
     "solve": "node ./index.js run"
   },
   "repository": {
@@ -22,8 +22,6 @@
     "commander": "^9.4.1"
   },
   "devDependencies": {
-    "eslint": "^8.29.0",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-plugin-import": "^2.26.0"
+    "standard": "^17.1.0"
   }
 }
