@@ -1,33 +1,72 @@
+/**
+ * Parse raw input lines into a 2-dimensional array, we can then address each
+ * element using "coordinates", which is helpful for finding "adjacent" points.
+ *
+ * @param {Array<string>} lines
+ * @returns {Array<(string | number)[]>}
+ */
 function parseInput (lines) {
-  return lines.map((line) => line.trim().split(''))
-}
-
-function parseInputPart2 (lines) {
   return lines.map((line) => line.trim().split('').map((char) => {
-    if (char === '*') {
+    const numVal = parseInt(char, 10)
+    if (Number.isNaN(numVal)) {
       return char
     }
-    if (char === '.' || Number.isNaN(parseInt(char, 10))) {
-      return '.'
-    }
-    return parseInt(char, 10)
+    return numVal
   }))
 }
 
+/**
+ * Find all the adjacent points and filter out those that are not numbers.
+ * Further, remove points that are immediately next to a number. This returns
+ * the minimum set of adjacent points.
+ *
+ * @param {Array<(string | number)[]>} lines
+ * @param {number} line
+ * @param {number} col
+ * @returns {Array<[number, number]>}
+ */
+function findAdjacentPoints (lines, line, col) {
+  // these are all potential adjacent points
+  return [
+    [line - 1, col - 1],
+    [line - 1, col],
+    [line - 1, col + 1],
+    [line, col - 1],
+    [line, col + 1],
+    [line + 1, col - 1],
+    [line + 1, col],
+    [line + 1, col + 1]
+  ].filter(([l, c]) => {
+    // filter out out-of-bounds values and those that aren't numbers
+    return l >= 0 && c >= 0 && l < lines.length && c < lines[l].length && typeof lines[l][c] === 'number'
+  }).filter(([l, c], i, adjacent) => {
+    // keep a point if there is no item immediately to the right
+    // this means that a number like `35` will only take one apparent adjacent point
+    return !adjacent.find((point) => point[0] === l && point[1] === c + 1)
+  })
+}
+
+/**
+ * Given a specific point in the input, we return the number that occupies that
+ * point. Also, provide the points that have been inspected to produce the value.
+ *
+ * @param {Array<(string | number)[]>} lines
+ * @param {number} line
+ * @param {number} col
+ * @returns {[number, Array<[number, number]>]}
+ */
 function getNumFromPoint (lines, line, col) {
   let char = lines[line][col]
-  if (char === '.') {
-    return [0, []]
+  if (typeof char !== 'number') {
+    throw new Error('Point does not represent a number')
   }
+  // find the left-most digit for this number
   let start = col
-  while (start > 0) {
-    char = lines[line][start - 1]
-    if (!Number.isNaN(parseInt(char, 10))) {
-      start -= 1
-    } else {
-      break
-    }
+  while (start > 0 && typeof lines[line][start - 1] === 'number') {
+    start -= 1
   }
+  // compose the number from its composite digits and record which points
+  // were used
   const checked = []
   let num = ''
   do {
@@ -35,7 +74,7 @@ function getNumFromPoint (lines, line, col) {
     char = lines[line][start]
     num = `${num}${char}`
     start += 1
-  } while (!Number.isNaN(parseInt(lines[line][start], 10)))
+  } while (typeof lines[line][start] === 'number')
   return [parseInt(num, 10), checked]
 }
 
@@ -55,23 +94,10 @@ module.exports = {
           // eslint-disable-next-line no-continue
           continue
         }
-        const val = parseInt(char, 10)
-        if (Number.isNaN(val)) {
+        if (typeof char !== 'number') {
           // symbol - what positions are "adjacent"
-          const adjacent = [
-            [j - 1, i - 1],
-            [j - 1, i],
-            [j - 1, i + 1],
-            [j, i - 1],
-            [j, i + 1],
-            [j + 1, i - 1],
-            [j + 1, i],
-            [j + 1, i + 1]
-          ].filter(([colNum, rowNum]) => {
-            // remove any points where the index is < 0 or > max
-            return rowNum >= 0 && rowNum < lines.length && colNum >= 0 && colNum < row.length
-          })
-          total += adjacent.reduce((sum, [colNum, rowNum]) => {
+          const adjacent = findAdjacentPoints(lines, i, j)
+          total += adjacent.reduce((sum, [rowNum, colNum]) => {
             // if we have checked the point before, don't check again
             if (checked.some((point) => {
               return rowNum === point[0] && colNum === point[1]
@@ -88,47 +114,24 @@ module.exports = {
     return total
   },
   part2: (data) => {
-    const lines = parseInputPart2(data)
-    let checked = []
+    const lines = parseInput(data)
     let total = 0
     for (let i = 0; i < lines.length; i += 1) {
       const row = lines[i]
       for (let j = 0; j < row.length; j += 1) {
         const char = row[j]
-        if (char === '.') {
-          continue
-        }
         if (char === '*') {
-          checked = []
           // find adjacent values and multiply
-          const adjacent = [
-            [j - 1, i - 1],
-            [j - 1, i],
-            [j - 1, i + 1],
-            [j, i - 1],
-            [j, i + 1],
-            [j + 1, i - 1],
-            [j + 1, i],
-            [j + 1, i + 1]
-          ].filter(([colNum, rowNum]) => {
-            // remove any points where the index is < 0 or > max
-            return rowNum >= 0 && rowNum < lines.length && colNum >= 0 && colNum < row.length && typeof lines[rowNum][colNum] === 'number'
-          })
-          const gears = adjacent.reduce((soFar, [colNum, rowNum]) => {
-            // if we have checked the point before, don't check again
-            if (checked.some((point) => {
-              return rowNum === point[0] && colNum === point[1]
-            })) {
-              return soFar
-            }
-            const [num, seen] = getNumFromPoint(lines, rowNum, colNum)
-            checked.push(...seen)
-            soFar.push(num)
-            return soFar
-          }, [])
-          if (gears.length === 2) {
-            total += gears[0] * gears[1]
+          const adjacent = findAdjacentPoints(lines, i, j)
+          // only those with exactly 2 adjacent points are "gears"
+          if (adjacent.length !== 2) {
+            continue
           }
+          total += adjacent.reduce((product, [rowNum, colNum]) => {
+            // if we have checked the point before, don't check again
+            const [num] = getNumFromPoint(lines, rowNum, colNum)
+            return product * num
+          }, 1)
         }
       }
     }
