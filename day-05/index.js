@@ -71,6 +71,27 @@ module.exports = {
       return Math.min(lowest, location)
     }, Infinity)
   },
-  part2: (data) => {
+  part2: (input) => {
+    const data = parseInput(input)
+    let lowest = Infinity
+    for (let i = 0; i < data.seeds.length; i += 2) {
+      const start = data.seeds[i]
+      const length = data.seeds[i + 1]
+      for (let j = start; j <= start + length; j += 1) {
+        const location = [
+          'seed-to-soil',
+          'soil-to-fertilizer',
+          'fertilizer-to-water',
+          'water-to-light',
+          'light-to-temperature',
+          'temperature-to-humidity',
+          'humidity-to-location'
+        ].reduce((pos, section) => {
+          return data[section].offsetOf(pos)
+        }, j)
+        lowest = Math.min(lowest, location)
+      }
+    }
+    return lowest
   }
 }
