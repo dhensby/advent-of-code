@@ -46,5 +46,15 @@ module.exports = {
     }, 1)
   },
   part2: (input) => {
+    const data = parseInput(input)
+    const [time, distance] = data.reduce(([t, d], [time, distance]) => {
+      return [
+        parseInt(`${t}${time}`, 10),
+        parseInt(`${d}${distance}`, 10)
+      ]
+    }, [0, 0])
+    const min = minWaitTime(distance, time)
+    const max = maxWaitTime(distance, time)
+    return 1 + max - min
   }
 }
