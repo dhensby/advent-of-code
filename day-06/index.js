@@ -12,37 +12,42 @@ function parseInput (input) {
   }, [])
 }
 
-// speed = distance / time
-// this essentially tells us the minimum we will have to hold the button for
-// or the "wait time" that we need to meet the required speed
-function minWaitTime (distance, totalTime) {
-  // the theoretical minimum wait time is to use all the time
-  // but of course "speed" is equivalent to our waiting time, so
-  let speed = Math.ceil(distance / totalTime)
-  while ((totalTime - speed) * speed <= distance) {
-    speed += 1
-  }
-  return speed
+function quadraticFormula (a, b, c) {
+  return [
+    (-b + Math.sqrt(b ** 2 - (4 * a * c))) / (2 * a),
+    (-b - Math.sqrt(b ** 2 - (4 * a * c))) / (2 * a)
+  ]
 }
 
-// we need to work out the maximum achievable speed whilst still completing the distance
-// in time
-function maxWaitTime (distance, time) {
-  // could we do a binary search on this?
-  let maxWaitTime = Math.min(distance, time - 1)
-  while ((time - maxWaitTime) * maxWaitTime <= distance) {
-    maxWaitTime -= 1
-  }
-  return maxWaitTime
-}
-
+/**
+ * The maths here is derived from speed = distance / time
+ * speed is equivalent to the "wait time" (W), distance is fixed (D),
+ * and time is the record (R) - the wait time (W):
+ *
+ * D = W * (R - W)
+ * D = RW - W^2
+ * 0 = W^2 - RW + D
+ *
+ * That is our quadratic formula, which can be plugged into the quadratic equation
+ * to find the two solutions to W.
+ *
+ * This catch is that we want to find the wait time that *beats* the record, and this will
+ * give us beat or match. So if the answer is an integer (no rounding needed) then we are matching
+ * the record and not beating it. So we have to make sure we account for that
+ */
 module.exports = {
   part1: (input) => {
     const data = parseInput(input)
     return data.reduce((product, [time, distance]) => {
-      const min = minWaitTime(distance, time)
-      const max = maxWaitTime(distance, time)
-      return product * (1 + max - min)
+      // solve the quadratic equation
+      let [max, min] = quadraticFormula(1, -time, distance)
+      // if the numbers are integers, then this will only *match* the record and not *beat* it
+      // so we must adjust the min/max values as needed
+      max = max % 1 === 0 ? max - 1 : Math.floor(max)
+      min = min % 1 === 0 ? min + 1 : Math.ceil(min)
+      // calculate the product of the number of ways to win - note we need to add 1
+      // because if there was only one way to win (max === min) then we are out by 1
+      return product * (1 + Math.floor(max) - Math.ceil(min))
     }, 1)
   },
   part2: (input) => {
@@ -53,8 +58,9 @@ module.exports = {
         parseInt(`${d}${distance}`, 10)
       ]
     }, [0, 0])
-    const min = minWaitTime(distance, time)
-    const max = maxWaitTime(distance, time)
-    return 1 + max - min
+    let [max, min] = quadraticFormula(1, -time, distance)
+    max = max % 1 === 0 ? max - 1 : Math.floor(max)
+    min = min % 1 === 0 ? min + 1 : Math.ceil(min)
+    return 1 + Math.floor(max) - Math.ceil(min)
   }
 }
