@@ -1,3 +1,7 @@
+const gcd = (a, b) => a ? gcd(b % a, a) : b
+
+const lcm = (a, b) => a * b / gcd(a, b)
+
 /**
  *
  * @param {Array<string>} input
@@ -26,29 +30,30 @@ function parseInput (input) {
       return i
     },
     parallelTraverse () {
-      let positions = Object.keys(this.elements).filter((el) => {
+      return Object.keys(this.elements).filter((el) => {
         return el[2] === 'A'
+      }).map((currentPos) => {
+        let i = 0
+        do {
+          const side = this.instructions[i % this.instructions.length] === 'L' ? 0 : 1
+          currentPos = this.elements[currentPos][side]
+          i += 1
+        } while (currentPos[2] !== 'Z')
+        return i
       })
-      let i = 0
-      do {
-        const side = this.instructions[i % this.instructions.length] === 'L' ? 0 : 1
-        positions = positions.map((pos) => {
-          return this.elements[pos][side]
-        })
-        i += 1
-      } while (!positions.every((pos) => pos[2] === 'Z'))
-      return i
     }
   }
 }
 
 module.exports = {
   part1: (input) => {
-    // const data = parseInput([...input])
-    // return data.traverse()
+    const data = parseInput([...input])
+    return data.traverse()
   },
   part2: (input) => {
     const data = parseInput([...input])
-    return data.parallelTraverse()
+    return data.parallelTraverse().reduce((acc, next) => {
+      return lcm(Math.min(next, acc), Math.max(next, acc))
+    }, 1)
   }
 }
