@@ -1,3 +1,46 @@
+function findStartPoint (data) {
+  for (let y = 0; y < data.length; y += 1) {
+    const row = data[y]
+    for (let x = 0; x < row.length; x += 1) {
+      const point = row[x]
+      if (point === 'S') {
+        return [x, y]
+      }
+    }
+  }
+}
+
+function symbolFromNeighbours (neighbours) {
+  if (neighbours.length !== 2) {
+    throw new Error('There must be 2 neighbours')
+  }
+  const [dx, dy] = [neighbours[1][0] - neighbours[0][0], neighbours[1][1] - neighbours[0][1]]
+  // vertical movement only
+  if (dy === 2) {
+    return '|'
+  }
+  // horizontal movement only
+  if (dx === 2) {
+    return '-'
+  }
+  // gone left and down
+  if (dx === -1 && dy === -1) {
+    return '7'
+  }
+  // gone right and down
+  if (dx === 1 && dy === -1) {
+    return 'F'
+  }
+  // gone left and up
+  if (dx === -1 && dy === 1) {
+    return 'J'
+  }
+  // gone right and up
+  if (dx === 1 && dy === -1) {
+    return 'L'
+  }
+}
+
 function potentialNeighbours (data, [x, y]) {
   const symbol = data[y][x]
   switch (symbol) {
@@ -45,18 +88,7 @@ function potentialNeighbours (data, [x, y]) {
 
 module.exports = {
   part1: (data) => {
-    let startingPoint
-    // find the starting point
-    for (let y = 0; y < data.length; y += 1) {
-      const row = data[y]
-      for (let x = 0; x < row.length; x += 1) {
-        const point = row[x]
-        if (point === 'S') {
-          startingPoint = [x, y]
-          break
-        }
-      }
-    }
+    const startingPoint = findStartPoint(data)
     if (!startingPoint) {
       throw new Error('No start point found')
     }
@@ -120,7 +152,7 @@ module.exports = {
       neighbours.set(point.join(','), neighbouringPoints)
     }
     // using the graph, we can build the valid route from the starting point
-    const route = [startingPoint]
+    const route = [startingPoint.join(',')]
     // we have to track the last point we saw and the next point we are going to
     // that allows us to not track back by accident
     let lastPoint = startingPoint
@@ -137,5 +169,108 @@ module.exports = {
     return route.length / 2
   },
   part2: (data) => {
+    const startingPoint = findStartPoint(data)
+    if (!startingPoint) {
+      throw new Error('No start point found')
+    }
+    // for fun, I'll solve the route a different way
+    const route = [startingPoint.join(',')]
+    // find a candidate point for the next point to visit from start
+    const startingNeighbours = potentialNeighbours(data, startingPoint).filter(([x, y]) => {
+      if (x >= 0 && y >= 0 && y < data.length && x < data[y].length && data[y][x] !== '.') {
+        const [dx, dy] = [startingPoint[0] - x, startingPoint[1] - y]
+        const candidatePoint = data[y][x]
+        // if moving north
+        if (dy === 1) {
+          return ['|', '7', 'F'].includes(candidatePoint)
+        }
+        // if moving east
+        if (dx === 1) {
+          return ['-', 'L', 'F'].includes(candidatePoint)
+        }
+        // if moving south
+        if (dy === -1) {
+          return ['|', 'J', 'L'].includes(candidatePoint)
+        }
+        // if moving west
+        if (dx === -1) {
+          return ['-', '7', 'J'].includes(candidatePoint)
+        }
+      }
+      return false
+    })
+    let curPoint = startingNeighbours[0]
+    let [dx, dy] = [curPoint[0] - startingPoint[0], curPoint[1] - startingPoint[1]]
+    do {
+      const symbol = data[curPoint[1]][curPoint[0]]
+      route.push(curPoint.join(','))
+      // work out our direction change based on our symbol
+      switch (symbol) {
+        case 'F':
+          dx = dx === -1 ? 0 : 1
+          dy = dy === -1 ? 0 : 1
+          break
+        case 'L':
+          dx = dx === -1 ? 0 : 1
+          dy = dy === 1 ? 0 : -1
+          break
+        case 'J':
+          dx = dx === 1 ? 0 : -1
+          dy = dy === 1 ? 0 : -1
+          break
+        case '7':
+          dx = dx === 1 ? 0 : -1
+          dy = dy === -1 ? 0 : 1
+          break
+      }
+      curPoint = [curPoint[0] + dx, curPoint[1] + dy]
+    } while (startingPoint[0] !== curPoint[0] || startingPoint[1] !== curPoint[1])
+
+    // we can conceptually simplify our map by replacing every point that is not
+    // on the perimeter with a '.' - we can then replace useless points in our data
+    // eg: a `-` is meaningless in terms of marking out if a point is next to it or not
+    // likewise, pairs of turns that bring you straight back (a U-bend) can be removed
+    // lastly, a pair of turns that takes you up/down (an S-bend) can be simplified to a |
+    const simplifiedData = []
+    const startingSymbol = symbolFromNeighbours(startingNeighbours)
+    for (let y = 0; y < data.length; y += 1) {
+      let row = ''
+      for (let x = 0; x < data[y].length; x += 1) {
+        if (!route.includes(`${x},${y}`)) {
+          row += '.'
+        } else if (data[y][x] === 'S') {
+          row += startingSymbol
+        } else if (data[y][x] !== '-') {
+          row += data[y][x]
+        }
+      }
+      simplifiedData.push(row
+        // trim `.` - they can't be enclosed
+        .replace(/^\.+/, '')
+        .replace(/\.+$/, '')
+        // U bends
+        .replaceAll('F7', '')
+        .replaceAll('LJ', '')
+        // S bends
+        .replaceAll('L7', '|')
+        .replaceAll('FJ', '|')
+      )
+    }
+    // the enclosed dots must be ones between an *odd* number of vertical pipes
+    return simplifiedData.reduce((sum, line) => {
+      // we don't start counting until we are inside a boundary
+      let counting = false
+      let count = 0
+      for (let i = 0; i < line.length; i += 1) {
+        // if we cross a boundary, then we start/stop counting
+        if (line[i] === '|') {
+          counting = !counting
+        } else if (counting && line[i] === '.') {
+          // count the dots
+          count += 1
+        }
+      }
+      return sum + count
+    }, 0)
   }
 }
