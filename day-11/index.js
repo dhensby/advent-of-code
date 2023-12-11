@@ -82,13 +82,22 @@ module.exports = {
   },
   part2: (data) => {
     // instead of trying to hold a logical mapping of the galaxy in memory
-    // (which will be too large) let's just find the galaxies - doing that
-    // we can then determine if a row/col is empty or not late
+    // (which will be too large) let's just find the galaxies - doing that,
+    // we can then determine if a row/col is empty or not
     const galaxies = []
+    // store unique list of rows/cols that have a galaxy in them
+    const galaxyRows = []
+    const galaxyCols = []
     for (let y = 0; y < data.length; y += 1) {
       for (let x = 0; x < data[y].length; x += 1) {
         if (data[y][x] === '#') {
           galaxies.push([x, y])
+          if (!galaxyRows.includes(y)) {
+            galaxyRows.push(y)
+          }
+          if (!galaxyCols.includes(x)) {
+            galaxyCols.push(x)
+          }
         }
       }
     }
@@ -105,26 +114,20 @@ module.exports = {
         const factor = 1000000
         let distance = 0
         if (startX !== endX) {
-          // find how many galaxies fall on the rows between start and end
-          const onRow = galaxies.reduce((matches, [x]) => {
-            if (x > startX && x < endX && !matches.includes(x)) {
-              matches.push(x)
-            }
-            return matches
-          }, [])
+          // find all columns that have a galaxy in them between our start and end
+          const onCol = galaxyCols.filter((x) => {
+            return x > startX && x < endX
+          })
           // work out x length
-          const xDistance = (endX - startX - onRow.length - 1) * factor + onRow.length + 1
+          const xDistance = (endX - startX - onCol.length - 1) * factor + onCol.length + 1
           distance += xDistance
         }
         if (startY !== endY) {
           // work out y length
-          const onCol = galaxies.reduce((matches, [, y]) => {
-            if (y > startY && y < endY && !matches.includes(y)) {
-              matches.push(y)
-            }
-            return matches
-          }, [])
-          const yDistance = (endY - startY - onCol.length - 1) * factor + onCol.length + 1
+          const onRow = galaxyRows.filter((y) => {
+            return y > startY && y < endY
+          })
+          const yDistance = (endY - startY - onRow.length - 1) * factor + onRow.length + 1
           distance += yDistance
         }
         distances.push(distance)
