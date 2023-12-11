@@ -81,5 +81,57 @@ module.exports = {
     }, 0)
   },
   part2: (data) => {
+    // instead of trying to hold a logical mapping of the galaxy in memory
+    // (which will be too large) let's just find the galaxies - doing that
+    // we can then determine if a row/col is empty or not late
+    const galaxies = []
+    for (let y = 0; y < data.length; y += 1) {
+      for (let x = 0; x < data[y].length; x += 1) {
+        if (data[y][x] === '#') {
+          galaxies.push([x, y])
+        }
+      }
+    }
+    // loop through each pair of galaxies
+    const distances = []
+    for (let i = 0; i < galaxies.length; i += 1) {
+      const from = galaxies[i]
+      for (let j = i + 1; j < galaxies.length; j += 1) {
+        const to = galaxies[j]
+        const startX = Math.min(from[0], to[0])
+        const endX = Math.max(from[0], to[0])
+        const startY = Math.min(from[1], to[1])
+        const endY = Math.max(from[1], to[1])
+        const factor = 1000000
+        let distance = 0
+        if (startX !== endX) {
+          // find how many galaxies fall on the rows between start and end
+          const onRow = galaxies.reduce((matches, [x]) => {
+            if (x > startX && x < endX && !matches.includes(x)) {
+              matches.push(x)
+            }
+            return matches
+          }, [])
+          // work out x length
+          const xDistance = (endX - startX - onRow.length - 1) * factor + onRow.length + 1
+          distance += xDistance
+        }
+        if (startY !== endY) {
+          // work out y length
+          const onCol = galaxies.reduce((matches, [, y]) => {
+            if (y > startY && y < endY && !matches.includes(y)) {
+              matches.push(y)
+            }
+            return matches
+          }, [])
+          const yDistance = (endY - startY - onCol.length - 1) * factor + onCol.length + 1
+          distance += yDistance
+        }
+        distances.push(distance)
+      }
+    }
+    return distances.reduce((sum, next) => {
+      return sum + next
+    }, 0)
   }
 }
