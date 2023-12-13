@@ -1,3 +1,5 @@
+const cache = new Map()
+
 /**
  * @param {Array<string>} input
  */
@@ -16,6 +18,10 @@ function parseInput (input) {
  * @return {number}
  */
 function calculateNumOptions (report, info) {
+  const key = `${report}-${info.join(',')}`
+  if (cache.has(key)) {
+    return cache.get(key)
+  }
   if (!info.length) {
     if (report.indexOf('#') === -1) {
       return 1
@@ -44,22 +50,40 @@ function calculateNumOptions (report, info) {
     }
     return 0
   }
+  let res = 0
   switch (report[0]) {
     case '.':
-      return calcWorking()
+      res = calcWorking()
+      break
     case '#':
-      return calcBroken()
+      res = calcBroken()
+      break
     case '?':
-      return calcWorking() + calcBroken()
+      res = calcWorking() + calcBroken()
+      break
   }
+  cache.set(key, res)
+  return res
 }
 
 module.exports = {
   part1: (input) => {
-    return parseInput(input).reduce((sum, [report, info]) => {
+    const res = parseInput(input).reduce((sum, [report, info]) => {
       return sum + calculateNumOptions(report, info)
     }, 0)
+    return res
   },
-  part2: (data) => {
+  part2: (input) => {
+    return parseInput(input).map(([report, info]) => {
+      let expandedReport = ''
+      const expandedInfo = []
+      for (let i = 0; i < 5; i += 1) {
+        expandedReport += report + '?'
+        expandedInfo.push(...info)
+      }
+      return [expandedReport.substring(0, expandedReport.length - 1), expandedInfo]
+    }).reduce((sum, [report, info]) => {
+      return sum + calculateNumOptions(report, info)
+    }, 0)
   }
 }
