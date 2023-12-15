@@ -45,7 +45,9 @@ function checkReflection (data, col, fuzzy = false) {
     left -= 1
     right += 1
   }
-  return true
+  // in fuzzy mode, we *have* to have seen a fuzzy row, so we only have a reflection
+  // line if fuzzy has been switched
+  return fuzzy === false
 }
 
 function rotateGrid (data) {
