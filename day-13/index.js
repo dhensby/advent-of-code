@@ -13,7 +13,21 @@ function parseInput (input) {
   return data
 }
 
-function checkReflection (data, col) {
+function isSingleDiff (a, b) {
+  if (a.length !== b.length) throw new Error('only diff same length')
+  let count = 0
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) {
+      count += 1
+    }
+    if (count > 1) {
+      return false
+    }
+  }
+  return true
+}
+
+function checkReflection (data, col, fuzzy = false) {
   // check this reflection goes all the way to the extremes
   let left = col
   let right = col + 1
@@ -22,7 +36,11 @@ function checkReflection (data, col) {
   }
   while (left >= 0 && right < data.length) {
     if (data[left] !== data[right]) {
-      return false
+      if (fuzzy && isSingleDiff(data[left], data[right])) {
+        fuzzy = false
+      } else {
+        return false
+      }
     }
     left -= 1
     right += 1
@@ -46,19 +64,10 @@ function rotateGrid (data) {
   return newGrid.map((row) => row.join(''))
 }
 
-function findReflectionCol (grid) {
-  // find two rows next to each other that are the same (this is the start of a reflection)
-  // start in the middle and perform an "inside-out" check
-  const halfPoint = Math.ceil(grid.length / 2)
-  for (let i = 0; i <= halfPoint; i += 1) {
-    const pos = halfPoint - i
-    const opposite = halfPoint + i + 1
-    if (pos >= 0 && checkReflection(grid, pos)) {
-      // we have a reflection point
-      return pos + 1
-    } else if (opposite < grid.length && checkReflection(grid, opposite)) {
-      // we have a reflection point
-      return opposite + 1
+function findReflectionCol (grid, fuzzy = false) {
+  for (let i = 0; i <= grid.length; i += 1) {
+    if (checkReflection(grid, i, fuzzy)) {
+      return i + 1
     }
   }
   return false
@@ -77,6 +86,14 @@ module.exports = {
       return sum + num
     }, 0)
   },
-  part2: (data) => {
+  part2: (input) => {
+    const data = parseInput(input)
+    return data.reduce((sum, grid) => {
+      const num = findReflectionCol(grid, true)
+      if (num === false) {
+        return sum + findReflectionCol(rotateGrid(grid), true)
+      }
+      return sum + (num * 100)
+    }, 0)
   }
 }
