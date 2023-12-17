@@ -137,6 +137,45 @@ function tracePaths (coords, startBeam) {
   return visited
 }
 
+/**
+ * Calculate the energised tiles for a given set of visited beam points
+ *
+ * @param {Array<[number, number, number]>} pathPoints
+ * @param {Array<[number, number, string]>} coords
+ * @param {number} maxRow
+ * @param {number} maxCol
+ * @returns {number}
+ */
+function calculateEnergisedTiles (pathPoints, coords, maxRow, maxCol) {
+  // we can use our path points to compute which points we have had to pass through
+  return pathPoints.reduce((map, [row, col, dir]) => {
+    // we have to have visited the point we are looking at:
+    map.set(`${row},${col}`, 1)
+    const reverse = dir === 2 || dir === 3
+    // where did we go to from this point and direction?
+    const nextObject = findNextObject(coords, [row, col, dir]) ?? [reverse ? 0 : maxRow, reverse ? 0 : maxCol]
+    // which coordinates do we pass through until we hit the next object
+    if (dir === 0) { // heading east
+      for (let i = 0; i < nextObject[1] - col; i += 1) {
+        map.set(`${row},${col + i}`, [row, col + i])
+      }
+    } else if (dir === 1) { // heading south
+      for (let i = 0; i < nextObject[0] - row; i += 1) {
+        map.set(`${row + i},${col}`, [row + i, col])
+      }
+    } else if (dir === 2) { // heading west
+      for (let i = 0; i <= col - nextObject[1]; i += 1) {
+        map.set(`${row},${col - i}`, [row, col - i])
+      }
+    } else if (dir === 3) { // heading north
+      for (let i = 0; i <= row - nextObject[0]; i += 1) {
+        map.set(`${row - i},${col}`, [row, col - i])
+      }
+    }
+    return map
+  }, new Map()).size
+}
+
 module.exports = {
   part1: (input) => {
     const coords = parseInput(input)
@@ -144,35 +183,62 @@ module.exports = {
     const maxCol = input[0].length
     // we have an array of visited points and corresponding directions they were visited from
     const pathPoints = tracePaths(coords, [0, 0, 0])
-    // we can use our path points to compute which points we have had to pass through
-    const visitedPoints = pathPoints.reduce((map, [row, col, dir]) => {
-      // we have to have visited the point we are looking at:
-      map.set(`${row},${col}`, 1)
-      const reverse = dir === 2 || dir === 3
-      // where did we go to from this point and direction?
-      const nextObject = findNextObject(coords, [row, col, dir]) ?? [reverse ? 0 : maxRow, reverse ? 0 : maxCol]
-      // which coordinates do we pass through until we hit the next object
-      if (dir === 0) { // heading east
-        for (let i = 0; i < nextObject[1] - col; i += 1) {
-          map.set(`${row},${col + i}`, [row, col + i])
+    return calculateEnergisedTiles(pathPoints, coords, maxRow, maxCol)
+  },
+  part2: (input) => {
+    const coords = parseInput(input)
+    const maxRow = input.length
+    const maxCol = input[0].length
+    // we need to iterate on every possible entry point and/or direction
+    // but there's no point in doing that unless we know we'll hit a target, so we just iterate over our known points
+    // we should find all the objects that are closest to the boundary and then evaluate them
+    const beams = coords.reduce((beams, [row, col, object]) => {
+      // don't add duplicates
+      if (beams.find(([r, c]) => r === row && c === col)) {
+        return beams
+      }
+      if (object !== '-') {
+        // always evaluate heading east
+        if (!beams.find(([r, c]) => r === row & c === 0)) {
+          beams.push([row, 0, 0])
         }
-      } else if (dir === 1) { // heading south
-        for (let i = 0; i < nextObject[0] - row; i += 1) {
-          map.set(`${row + i},${col}`, [row + i, col])
-        }
-      } else if (dir === 2) { // heading west
-        for (let i = 0; i <= col - nextObject[1]; i += 1) {
-          map.set(`${row},${col - i}`, [row, col - i])
-        }
-      } else if (dir === 3) { // heading north
-        for (let i = 0; i <= row - nextObject[0]; i += 1) {
-          map.set(`${row - i},${col}`, [row, col - i])
+        if (!beams.find(([r, c]) => r === row & c === maxCol - 1)) {
+          // if the object is going to split the beam, see if there's a different object
+          // we could reach from the west
+          if (object === '|') {
+            const altObject = findNextObject(coords, [row, maxCol - 1, 2])
+            // same row, different column
+            if (altObject[1] !== col) {
+              beams.push([row, maxCol - 1, 2])
+            }
+          } else {
+            beams.push([row, maxCol - 1, 2])
+          }
         }
       }
-      return map
-    }, new Map())
-    return visitedPoints.size
-  },
-  part2: (data) => {
+      if (object !== '|') {
+        // always evaluate heading south
+        if (!beams.find(([r, c]) => r === 0 & c === col)) {
+          beams.push([0, col, 1])
+        }
+        if (!beams.find(([r, c]) => r === maxRow - 1 & c === col)) {
+          // if the object is going to split the beam, see if there's a different object
+          // we could reach from the west
+          if (object === '-') {
+            const altObject = findNextObject(coords, [maxRow - 1, col, 3])
+            // same column, different row
+            if (altObject[0] !== row) {
+              beams.push([maxRow - 1, col, 3])
+            }
+          } else {
+            beams.push([maxRow - 1, col, 3])
+          }
+        }
+      }
+      return beams
+    }, [])
+    return beams.reduce((max, next) => {
+      return Math.max(max, calculateEnergisedTiles(tracePaths(coords, next), coords, maxRow, maxCol))
+    }, 0)
   }
 }
