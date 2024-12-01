@@ -31,12 +31,7 @@ function validateDay (val: string): number {
  * @param {boolean} test
  * @returns {Promise<string[][]>}
  */
-async function findInputForDay (day: string, test: boolean): Promise<string[][]> {
-  if (test) {
-    const files = await readdir(`./day-${day}`)
-    const testFiles = files.filter((fileName) => fileName.startsWith('test-input'))
-    return await Promise.all(testFiles.sort().map(async (fileName) => await readFileLines(`./day-${day}/${fileName}`)))
-  }
+async function findInputForDay (day: string): Promise<string[][]> {
   return await Promise.all([readFileLines(`./day-${day}/input.txt`)])
 }
 
@@ -65,8 +60,7 @@ program.addCommand(
       await mkdir(`./day-${chosenDay.toString().padStart(2, '0')}`)
       await Promise.all([
         ['index.ts', 'export async function part1 (data: string[]): Promise<string> {\n}\n\nexport async function part2 (data: string[]): Promise<string> {\n}\n'],
-        ['input.txt', ''],
-        ['test-input-part1.txt', '']
+        ['input.txt', '']
       ].map(async ([fileName, data]) => await writeFile(`./day-${chosenDay.toString().padStart(2, '0')}/${fileName}`, data)))
     })
 )
@@ -75,7 +69,6 @@ program.addCommand(
   new Command()
     .name('run')
     .description('Run a days code')
-    .option('-t, --test', 'Run with test input', false)
     .argument('[day]', 'The day of the challenge', validateDay)
     .action(async (day, opts) => {
       const dirs = await readdir('.')
@@ -86,7 +79,7 @@ program.addCommand(
       if (!existingDays.includes(chosenDay)) {
         throw new InvalidArgumentError(`No program found for day-${chosenDay}`)
       }
-      const data = await findInputForDay(chosenDay.toString().padStart(2, '0'), opts.test)
+      const data = await findInputForDay(chosenDay.toString().padStart(2, '0'))
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const action = require(`./day-${chosenDay.toString().padStart(2, '0')}`) as { part1?: ((data: string[]) => Promise<string>), part2?: ((data: string[]) => Promise<string>) }
       const results: { part1?: string, part2?: string } = {}
