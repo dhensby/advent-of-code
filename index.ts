@@ -1,20 +1,20 @@
 /* eslint-disable no-console */
-const {
+import {
   readdir,
   mkdir,
   writeFile,
   readFile
-} = require('fs').promises
-const { Command, InvalidArgumentError } = require('commander')
+} from 'node:fs/promises'
+import { Command, InvalidArgumentError } from 'commander'
 
 // helper for reading input data from files
-async function readFileLines (path) {
+async function readFileLines (path: string): Promise<string[]> {
   const data = await readFile(path)
   return data.toString().replace(/\s+$/, '').split(/\r?\n/)
 }
 
-function validateDay (val) {
-  const day = val.startsWith('day-') ? val.match(/^day-([0-9]+)$/)[1] : val
+function validateDay (val: string): number {
+  const [, day] = val.match(/^day-([0-9]+)$/) ?? []
   const intVal = parseInt(day, 10)
   if (Number.isNaN(intVal) || intVal.toString(10) !== day) {
     throw new InvalidArgumentError('day arg must be a number.')
@@ -31,13 +31,13 @@ function validateDay (val) {
  * @param {boolean} test
  * @returns {Promise<string[][]>}
  */
-async function findInputForDay (day, test) {
+async function findInputForDay (day: string, test: boolean): Promise<string[][]> {
   if (test) {
     const files = await readdir(`./day-${day}`)
     const testFiles = files.filter((fileName) => fileName.startsWith('test-input'))
-    return Promise.all(testFiles.sort().map((fileName) => readFileLines(`./day-${day}/${fileName}`)))
+    return await Promise.all(testFiles.sort().map(async (fileName) => await readFileLines(`./day-${day}/${fileName}`)))
   }
-  return Promise.all([readFileLines(`./day-${day}/input.txt`)])
+  return await Promise.all([readFileLines(`./day-${day}/input.txt`)])
 }
 
 const program = new Command()
@@ -55,19 +55,19 @@ program.addCommand(
     .action(async (day) => {
       const dirs = await readdir('.')
       const existingDays = dirs.filter((name) => name.match(/^day-[0-9]+$/))
-        .map((name) => parseInt(name.match(/^day-([0-9]+)$/)[1], 10))
-        .sort()
-      const chosenDay = day ?? (Math.max(0, ...existingDays) + 1)
+        .map((name) => parseInt((name.match(/^day-([0-9]+)$/) ?? [])[1], 10))
+        .sort((a, b) => a - b)
+      const chosenDay: number = day ?? (Math.max(0, ...existingDays) + 1)
       if (existingDays.includes(chosenDay)) {
         throw new InvalidArgumentError(`Folder already exists for day-${chosenDay.toString().padStart(2, '0')}`)
       }
       console.log('Creating folder for challenge day', chosenDay)
       await mkdir(`./day-${chosenDay.toString().padStart(2, '0')}`)
       await Promise.all([
-        ['index.js', 'module.exports = {\n  part1: (data) => {\n  },\n  part2: (data) => {\n  },\n};\n'],
+        ['index.ts', 'export async function part1 (data: string[]): Promise<string> {\n}\n\nexport async function part2 (data: string[]): Promise<string> {\n}\n'],
         ['input.txt', ''],
         ['test-input-part1.txt', '']
-      ].map(([fileName, data]) => writeFile(`./day-${chosenDay.toString().padStart(2, '0')}/${fileName}`, data)))
+      ].map(async ([fileName, data]) => await writeFile(`./day-${chosenDay.toString().padStart(2, '0')}/${fileName}`, data)))
     })
 )
 
@@ -80,20 +80,20 @@ program.addCommand(
     .action(async (day, opts) => {
       const dirs = await readdir('.')
       const existingDays = dirs.filter((name) => name.match(/^day-[0-9]+$/))
-        .map((name) => parseInt(name.match(/^day-([0-9]+)$/)[1], 10))
+        .map((name) => parseInt((name.match(/^day-([0-9]+)$/) ?? [])[1], 10))
         .sort((a, b) => a - b)
-      const chosenDay = day ?? existingDays[existingDays.length - 1]
+      const chosenDay: number = day ?? existingDays[existingDays.length - 1]
       if (!existingDays.includes(chosenDay)) {
         throw new InvalidArgumentError(`No program found for day-${chosenDay}`)
       }
       const data = await findInputForDay(chosenDay.toString().padStart(2, '0'), opts.test)
-      // eslint-disable-next-line global-require,import/no-dynamic-require
-      const action = require(`./day-${chosenDay.toString().padStart(2, '0')}`)
-      const results = {}
-      if (action.part1) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const action = require(`./day-${chosenDay.toString().padStart(2, '0')}`) as { part1?: ((data: string[]) => Promise<string>), part2?: ((data: string[]) => Promise<string>) }
+      const results: { part1?: string, part2?: string } = {}
+      if (action.part1 != null) {
         results.part1 = await action.part1(data[0])
       }
-      if (action.part2) {
+      if (action.part2 != null) {
         results.part2 = await action.part2(data[data.length - 1])
       }
       console.log(results)

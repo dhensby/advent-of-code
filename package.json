@@ -6,9 +6,9 @@
     "aoc": "index.js"
   },
   "scripts": {
-    "create": "node ./index.js create",
-    "lint": "standard",
-    "solve": "node ./index.js run"
+    "create": "ts-node ./index.ts create",
+    "lint": "ts-standard",
+    "solve": "ts-node ./index.ts run"
   },
   "repository": {
     "type": "git",
@@ -22,6 +22,10 @@
     "commander": "^9.4.1"
   },
   "devDependencies": {
-    "standard": "^17.1.0"
+    "@tsconfig/node22": "^22.0.0",
+    "@types/node": "^22.10.1",
+    "ts-node": "^10.9.2",
+    "ts-standard": "^12.0.2",
+    "typescript": "^5.7.2"
   }
 }
