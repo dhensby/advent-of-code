@@ -13,10 +13,6 @@ enum Direction {
   NW,
 }
 
-const GOOD: Array<[number, number]> = []
-
-const LETTERS = ['M', 'A', 'S']
-
 function navigateDirection (direction: Direction, pos: [number, number]): [number, number] {
   let [row, col] = pos
   switch (direction) {
@@ -46,52 +42,39 @@ function navigateDirection (direction: Direction, pos: [number, number]): [numbe
   return [row, col]
 }
 
-function checkDirection (data: string[][], direction: Direction, start: [number, number]): boolean {
+function checkDirection (data: string[][], sequence: string[], direction: Direction, start: [number, number]): boolean {
   let pos = start
-  const checked: Array<[number, number]> = [pos]
-  for (const letter of LETTERS) {
-    pos = navigateDirection(direction, pos)
+  const checked: Array<[number, number]> = []
+  for (const letter of sequence) {
     const [row, col] = pos
     if (letter === data[row]?.[col]) {
       checked.push(pos)
+      pos = navigateDirection(direction, pos)
       continue
     }
     return false
   }
-  GOOD.push(...checked)
   return true
 }
 
 export async function part1 (raw: string[]): Promise<string> {
   const data = prepData(raw)
-  const Xs: Array<[number, number]> = []
+  const startingPoints: Array<[number, number]> = []
+  const sequence = ['X', 'M', 'A', 'S']
   // find all starting coordinates
   for (let row = 0; row < data.length; row += 1) {
     for (let col = 0; col < data.length; col += 1) {
-      if (data[row][col] === 'X') {
-        Xs.push([row, col])
+      if (data[row][col] === sequence[0]) {
+        startingPoints.push([row, col])
       }
     }
   }
-  const answer = Xs.reduce((sum, next) => {
+  return startingPoints.reduce((sum, next) => {
     for (let dir = 0; dir < 8; dir += 1) {
-      sum += checkDirection(data, dir, next) ? 1 : 0
+      sum += checkDirection(data, sequence, dir, next) ? 1 : 0
     }
     return sum
   }, 0).toString(10)
-  // render the plot
-  // for (let i = 0; i < data.length; i += 1) {
-  //   let row = ''
-  //   for (let j = 0; j < data[i].length; j += 1) {
-  //     if (GOOD.find(([row, col]) => row === i && col === j) != null) {
-  //       row += data[i][j]
-  //     } else {
-  //       row += '.'
-  //     }
-  //   }
-  //   console.log(row)
-  // }
-  return answer
 }
 
 export async function part2 (raw: string[]): Promise<string> {
