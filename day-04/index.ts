@@ -78,7 +78,7 @@ export async function part1 (raw: string[]): Promise<string> {
   const sequence = ['X', 'M', 'A', 'S']
   // find all starting coordinates
   for (let row = 0; row < data.length; row += 1) {
-    for (let col = 0; col < data.length; col += 1) {
+    for (let col = 0; col < data[row].length; col += 1) {
       if (data[row][col] === sequence[0]) {
         startingPoints.push([row, col])
       }
@@ -98,7 +98,7 @@ export async function part2 (raw: string[]): Promise<string> {
   const sequence = ['M', 'A', 'S']
   // find all starting coordinates
   for (let row = 0; row < data.length; row += 1) {
-    for (let col = 0; col < data.length; col += 1) {
+    for (let col = 0; col < data[row].length; col += 1) {
       if (data[row][col] === sequence[0]) {
         startingPoints.push([row, col])
       }
