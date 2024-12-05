@@ -1,9 +1,7 @@
-function prepData (raw: string[]): [number[][], number[][]] {
+function prepData (raw: string[]): [Record<number, number[]>, number[][]] {
   let i = 0
-  return raw.reduce<[number[][], number[][]]>((data, line) => {
-    if (data[i] === undefined) {
-      data[i] = []
-    }
+  const parsed = raw.reduce<[number[][], number[][]]>((data, line) => {
+    data[i] ??= []
     if (line === '') {
       i += 1
       return data
@@ -11,37 +9,33 @@ function prepData (raw: string[]): [number[][], number[][]] {
     data[i].push(line.split(/[|,]/).map((n) => parseInt(n, 10)))
     return data
   }, [[], []])
-}
-
-export async function part1 (raw: string[]): Promise<string> {
-  const [orderingRules, pages] = prepData(raw)
-  const res = pages.reduce((sum, page, i) => {
-    const remaining = [...page]
-    let next
-    while ((next = remaining.shift()) !== undefined) {
-      const rules = orderingRules.filter(([cur, others]) => {
-        return cur === next && remaining.includes(others)
-      })
-      if (rules.length !== remaining.length) {
-        return sum
-      }
-    }
-    return sum + page[Math.floor(page.length / 2)]
-  }, 0)
-  return res.toString(10)
-}
-
-export async function part2 (raw: string[]): Promise<string> {
-  const [orderingRules, pages] = prepData(raw)
-  // optimise by doing a "graph" of the sorting rules
-  const graph: Record<number, number[]> = orderingRules.reduce((map, pair) => {
+  const graph: Record<number, number[]> = parsed[0].reduce((map, pair) => {
     if (map[pair[0]] === undefined) {
       map[pair[0]] = []
     }
     map[pair[0]].push(pair[1])
     return map
   }, Object.create(null))
-  console.log(graph)
+  return [graph, parsed[1]]
+}
+
+export async function part1 (raw: string[]): Promise<string> {
+  const [graph, pages] = prepData(raw)
+  const res = pages.reduce((sum, page) => {
+    const ordered = page.every((num, i, arr) => {
+      // are all the remaining elements allowed to come next
+      return arr.slice(i + 1).every((r) => graph[num]?.includes(r))
+    })
+    if (ordered) {
+      return sum + page[Math.floor(page.length / 2)]
+    }
+    return sum
+  }, 0)
+  return res.toString(10)
+}
+
+export async function part2 (raw: string[]): Promise<string> {
+  const [graph, pages] = prepData(raw)
   return pages.reduce((accum, page, i) => {
     const ordered = page.every((num, i, arr) => {
       // are all the remaining elements allowed to come next
