@@ -1,7 +1,5 @@
 type Coordinate = [number, number]
 
-type CoordinateEntries = [Coordinate | null, Coordinate | null, Coordinate | null, Coordinate | null]
-
 enum Direction {
   N,
   NE,
@@ -13,60 +11,21 @@ enum Direction {
   NW,
 }
 
-function navigateDirection (direction: Direction, pos: Coordinate): Coordinate {
-  let [row, col] = pos
-  switch (direction) {
-    case Direction.N:
-    case Direction.NE:
-    case Direction.NW:
-      row -= 1
-      break
-    case Direction.S:
-    case Direction.SE:
-    case Direction.SW:
-      row += 1
-      break
-  }
-  switch (direction) {
-    case Direction.E:
-    case Direction.NE:
-    case Direction.SE:
-      col += 1
-      break
-    case Direction.W:
-    case Direction.SW:
-    case Direction.NW:
-      col -= 1
-      break
-  }
-  return [row, col]
-}
-
-function prepData (data: string[]): [Coordinate, Map<Coordinate, CoordinateEntries>, string[][]] {
+function prepData (data: string[]): [Coordinate, Coordinate[], string[][]] {
   const grid = data.map((line) => line.split(''))
   let startPoint: Coordinate | null = null
   // create a graph of all obstructions and the nearest obstruction in each direction
-  const graph: Map<Coordinate, CoordinateEntries> = grid.reduce((acc, line, row) => {
+  const graph: Coordinate[] = grid.reduce<Coordinate[]>((acc, line, row) => {
     line.forEach((element, col) => {
       const point: Coordinate = [row, col]
       if (element === '^') {
         startPoint = point
       } else if (element === '#') {
-        const points: CoordinateEntries = [null, null, null, null]
-        let pos = point
-        for (let dir = 0; dir < 8; dir += 2) {
-          do {
-            pos = navigateDirection(dir, pos)
-          } while (grid[pos[0]]?.[pos[1]] === '.')
-          if (grid[pos[0]]?.[pos[1]] !== undefined) {
-            points[dir / 2] = pos
-          }
-        }
-        acc.set([row, col], points)
+        acc.push(point)
       }
     })
     return acc
-  }, new Map())
+  }, [])
   if (startPoint === null) throw new Error()
   return [startPoint, graph, grid]
 }
@@ -84,16 +43,15 @@ function render (grid: string[][], position: Coordinate, direction: Direction): 
   console.log('')
 }
 
-export async function part1 (raw: string[]): Promise<string> {
-  const [start, graph, grid] = prepData(raw)
+function walk (grid: string[][], obstacles: Coordinate[], start: Coordinate): Array<[Coordinate, Coordinate]> {
   const journeys: Array<[Coordinate, Coordinate]> = []
-  const obstacleCoords = Array.from(graph.keys())
   let position = start
   let direction: Direction = Direction.N as Direction
   let end = false
   do {
     // find the obstacle you're going to hit given current direction of travel
-    let [hit] = obstacleCoords.filter(([row, col]) => {
+    // first, find all points on the axis of travel that are "in your way"
+    let [hit] = obstacles.filter(([row, col]) => {
       switch (direction) {
         case Direction.N:
           return col === position[1] && row < position[0]
@@ -107,6 +65,7 @@ export async function part1 (raw: string[]): Promise<string> {
           return false
       }
     }).sort((a, b) => {
+      // sort the candidate obstacles so that the "closest" one is first
       switch (direction) {
         case Direction.N:
           return b[0] - a[0]
@@ -120,7 +79,7 @@ export async function part1 (raw: string[]): Promise<string> {
           return 0
       }
     })
-    // we found an obstacle, calculate new position
+    // we found an obstacle in the way, calculate the new position
     if (hit !== undefined) {
       // clone the position so we don't modify it by reference
       hit = [...hit]
@@ -166,6 +125,12 @@ export async function part1 (raw: string[]): Promise<string> {
     // rotate our direction 90 to the right
     direction = (direction + 2) % 8
   } while (!end)
+  return journeys
+}
+
+export async function part1 (raw: string[]): Promise<string> {
+  const [start, obstacles, grid] = prepData(raw)
+  const journeys = walk(grid, obstacles, start)
   // calculate all the points we went through for our journeys & add to a set to get the unique coords
   const visited = journeys.reduce((v, [start, end]) => {
     // we are on the same row, so travelling E/W
