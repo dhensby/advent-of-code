@@ -44,7 +44,7 @@ export async function part2 (raw: string[]): Promise<string> {
         if (candidate > answer) {
           continue
         }
-        const add = candidate + parts[i];
+        const add = candidate + parts[i]
         if (add <= answer) {
           answers.push(add)
         }
