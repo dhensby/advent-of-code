@@ -1,212 +1,136 @@
-type Coordinate = [number, number]
+import { Coordinate, Grid, Line, Step } from '../utils'
 
-enum Direction {
-  N,
-  NE,
-  E,
-  SE,
-  S,
-  SW,
-  W,
-  NW,
+function prepData (lines: string[]): Grid {
+  return new Grid(lines.map((line) => line.split('')))
 }
 
-function prepData (data: string[]): [Coordinate, Coordinate[], string[][]] {
-  const grid = data.map((line) => line.split(''))
-  let startPoint: Coordinate | null = null
-  // create a graph of all obstructions and the nearest obstruction in each direction
-  const graph: Coordinate[] = grid.reduce<Coordinate[]>((acc, line, row) => {
-    line.forEach((element, col) => {
-      const point: Coordinate = [row, col]
-      if (element === '^') {
-        startPoint = point
-      } else if (element === '#') {
-        acc.push(point)
-      }
-    })
-    return acc
-  }, [])
-  if (startPoint === null) throw new Error()
-  return [startPoint, graph, grid]
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function render (grid: string[][], position: Coordinate, direction: Direction): void {
-  const icon = ['^', '>', 'v', '<'][direction / 2]
-  for (let i = 0; i < grid.length; i += 1) {
-    let row = ''
-    for (let j = 0; j < grid[i].length; j += 1) {
-      row += position[0] === i && position[1] === j ? icon : grid[i][j] === '#' ? '#' : '.'
+function filterObstacles (obstacles: Coordinate[], start: Coordinate, direction: Step): Coordinate[] {
+  // filter out any irrelevant destinations
+  return obstacles.filter(([row, col]) => {
+    // if we aren't traversing rows, then filter out points on other rows
+    if (direction[0] === 0 && row !== start[0]) {
+      return false
     }
-    console.log(row)
-  }
-  console.log('')
+    // if we aren't traversing cols, then filter out points that are in other cols
+    if (direction[1] === 0 && col !== start[1]) {
+      return false
+    }
+    // filter out any points that aren't "ahead" of us
+    if (direction[0] > 0 && row <= start[0]) {
+      return false
+    }
+    if (direction[0] < 0 && row >= start[0]) {
+      return false
+    }
+    if (direction[1] > 0 && col <= start[1]) {
+      return false
+    }
+    if (direction[1] < 0 && col >= start[1]) {
+      return false
+    }
+    return true
+  })
 }
 
-type Journey = [Coordinate, Coordinate, Direction]
-
-function walk (grid: string[][], obstacles: Coordinate[], start: Coordinate): Journey[] | null {
-  const journeys: Journey[] = []
-  let position = start
-  let direction: Direction = Direction.N as Direction
-  let end = false
-  do {
-    // find the obstacle you're going to hit given current direction of travel
-    // first, find all points on the axis of travel that are "in your way"
-    let [hit] = obstacles.filter(([row, col]) => {
-      switch (direction) {
-        case Direction.N:
-          return col === position[1] && row < position[0]
-        case Direction.S:
-          return col === position[1] && row > position[0]
-        case Direction.E:
-          return row === position[0] && col > position[1]
-        case Direction.W:
-          return row === position[0] && col < position[1]
-        default:
-          return false
-      }
-    }).sort((a, b) => {
-      // sort the candidate obstacles so that the "closest" one is first
-      switch (direction) {
-        case Direction.N:
-          return b[0] - a[0]
-        case Direction.S:
-          return a[0] - b[0]
-        case Direction.E:
-          return a[1] - b[1]
-        case Direction.W:
-          return b[1] - a[1]
-        default:
-          return 0
-      }
-    })
-    // we found an obstacle in the way, calculate the new position
-    if (hit !== undefined) {
-      // clone the position so we don't modify it by reference
-      hit = [...hit]
-      // we will be "next to" the obstacle, but where depends on the direction we travelled
-      switch (direction) {
-        case Direction.N:
-          hit[0] += 1
-          break
-        case Direction.S:
-          hit[0] -= 1
-          break
-        case Direction.E:
-          hit[1] -= 1
-          break
-        case Direction.W:
-          hit[1] += 1
-          break
+function walk (grid: Grid, start: Coordinate, obstacles: Coordinate[]): Line[] | undefined {
+  const dirs: Step[] = [
+    // north
+    [-1, 0],
+    // east
+    [0, 1],
+    // south
+    [1, 0],
+    // west
+    [0, -1]
+  ]
+  const journeys: Line[] = []
+  let from = start
+  let direction = 0
+  // if we have started on this spot before, we must be in a loop
+  while (!journeys.some(([begin]) => begin[0] === from[0] && begin[1] === from[1])) {
+    // filter out any irrelevant destinations
+    const filteredObstacles = filterObstacles(obstacles, from, dirs[direction])
+    let end = grid.travelFrom(from, dirs[direction], filteredObstacles)
+    // did we hit an obstacle or did we go off the map
+    if (filteredObstacles.some(([row, col]) => end[0] === row && end[1] === col)) {
+      end = grid.step(end, dirs[direction], true)
+      // don't record us just *turning* and not *travelling*
+      if (end[0] !== from[0] || end[1] !== from[1]) {
+        journeys.push([from, end])
       }
     } else {
-      // we hit the edge - so we are finished
-      end = true
-      // calculate the final position depending on the direction we travelled
-      switch (direction) {
-        case Direction.N:
-          hit = [0, position[1]]
-          break
-        case Direction.S:
-          hit = [grid.length - 1, position[1]]
-          break
-        case Direction.E:
-          hit = [position[0], grid[grid.length - 1].length - 1]
-          break
-        case Direction.W:
-          hit = [position[0], 0]
-          break
-      }
+      // off the map
+      journeys.push([from, end])
+      return journeys
     }
-    // render(grid, hit!, direction)
-    // record our start / end position as our current "journey"
-    journeys.push([position, hit, direction])
-    // update our current position
-    position = hit
-    // rotate our direction 90 to the right
-    direction = (direction + 2) % 8
-    // check if the journey is in a loop or not by seeing if we have ended in a location that is on a previous journey
-    const visitedBefore = journeys.find(([start, end, journeyDir]) => {
-      // are we going the same direction
-      if (journeyDir !== direction) {
-        return false
-      }
-      switch (journeyDir) {
-        case Direction.N:
-          return position[1] === start[1] && position[1] === end[1] && position[0] <= start[0] && position[0] >= end[0]
-        case Direction.S:
-          return position[1] === start[1] && position[1] === end[1] && position[0] >= start[0] && position[0] <= end[0]
-        case Direction.E:
-          return position[0] === start[0] && position[0] === end[0] && position[1] >= start[1] && position[1] <= end[1]
-        case Direction.W:
-          return position[0] === start[0] && position[0] === end[0] && position[1] <= start[1] && position[1] >= end[1]
-        default:
-          return false
-      }
-    })
-    if (visitedBefore !== undefined) {
-      return null
-    }
-  } while (!end)
-  return journeys
+    direction = (direction + 1) % dirs.length
+    from = end
+  }
+  return undefined
 }
 
 export async function part1 (raw: string[]): Promise<string> {
-  const [start, obstacles, grid] = prepData(raw)
+  const grid = prepData(raw)
+  const obstacles = grid.findAll('#')['#']
+  const start = grid.find('^')
+  if (start === null) throw new Error()
   console.time('part1')
-  const journeys = walk(grid, obstacles, start)
-  // calculate all the points we went through for our journeys & add to a set to get the unique coords
-  const visited = journeys?.reduce((v, [start, end, direction]) => {
-    // we are on the same row, so travelling E/W
-    if (start[0] === end[0]) {
-      // loop from start to end point and add each point to the set
-      const from = direction === Direction.W ? end[1] : start[1]
-      const to = direction === Direction.W ? start[1] : end[1]
-      for (let i = from; i <= to; i += 1) {
-        v.add(`${start[0]},${i}`)
+  const journeys = walk(grid, start, obstacles)
+  // generate all points along a line
+  const points = journeys?.reduce((set, [start, end]) => {
+    set.add(start.join(','))
+    const step: Step = [end[0] - start[0], end[1] - start[1]]
+    let position = start
+    while (position[0] !== end[0] || position[1] !== end[1]) {
+      // there's definitely a nicer way to work out the grid increments
+      if (step[0] === 0) {
+        position = grid.step(position, [0, step[1] > 0 ? 1 : -1])
+      } else if (step[1] === 0) {
+        position = grid.step(position, [step[0] > 0 ? 1 : -1, 0])
       }
-    } else {
-      const from = direction === Direction.N ? end[0] : start[0]
-      const to = direction === Direction.N ? start[0] : end[0]
-      for (let i = from; i <= to; i += 1) {
-        v.add(`${i},${start[1]}`)
-      }
+      set.add(position.join(','))
     }
-    return v
+    return set
   }, new Set<string>())
   console.timeEnd('part1')
-  return visited?.size.toString(10) ?? ''
+  // console.log(grid.draw({'X': Array.from(points.values()).map((v) => v.split(',').map((p) => parseInt(p, 10)) as Coordinate)}))
+  return points?.size.toString(10) ?? ''
 }
 
 export async function part2 (raw: string[]): Promise<string> {
-  const [start, obstacles, grid] = prepData(raw)
-  // stupid approach is just to add an obstacle to every place there is a '.'
-  // better approach is to place obstacles along every visited
+  const grid = prepData(raw)
+  const obstacles = grid.findAll('#')['#']
+  const start = grid.find('^')
+  if (start === null) throw new Error()
   console.time('part2')
-  const visited = walk(grid, obstacles, start)?.reduce((v, [start, end, direction]) => {
-    // we are on the same row, so travelling E/W
-    if (start[0] === end[0]) {
-      // loop from start to end point and add each point to the set
-      const from = direction === Direction.W ? end[1] : start[1]
-      const to = direction === Direction.W ? start[1] : end[1]
-      for (let i = from; i <= to; i += 1) {
-        v.add(`${start[0]},${i}`)
+  const journeys = walk(grid, start, obstacles)
+  const points = journeys?.reduce((set, [start, end]) => {
+    set.add(start.join(','))
+    const step: Step = [end[0] - start[0], end[1] - start[1]]
+    let position = start
+    while (position[0] !== end[0] || position[1] !== end[1]) {
+      // there's definitely a nicer way to work out the grid increments
+      if (step[0] === 0) {
+        position = grid.step(position, [0, step[1] > 0 ? 1 : -1])
+      } else if (step[1] === 0) {
+        position = grid.step(position, [step[0] > 0 ? 1 : -1, 0])
       }
-    } else {
-      const from = direction === Direction.N ? end[0] : start[0]
-      const to = direction === Direction.N ? start[0] : end[0]
-      for (let i = from; i <= to; i += 1) {
-        v.add(`${i},${start[1]}`)
-      }
+      set.add(position.join(','))
     }
-    return v
+    return set
   }, new Set<string>())
-  // just replace every visited position with an obstacle
-  const count = Array.from(visited?.values() ?? []).reduce((sum, next) => {
-    sum += walk(grid, [next.split(',').map((v) => parseInt(v, 10)) as Coordinate, ...obstacles], start) === null ? 1 : 0
-    return sum
+  // most simple solution is to place an obstacle on every visited point and see if that
+  // ends up in a loop or not
+  const sum = Array.from(points?.values() ?? []).reduce((accum, p) => {
+    const point = p.split(',').map((c) => parseInt(c, 10)) as Coordinate
+    if (walk(grid, start, [point, ...obstacles]) === undefined) {
+      return accum + 1
+    }
+    return accum
   }, 0)
   console.timeEnd('part2')
-  return count.toString(10)
+  // we want to find all candidate points for an obstacle.
+  // candidate points are going to be along the side of a parallel line in the *other* direction to a journey
+  // where we have clear line of sight to that line
+  return sum.toString(10)
 }
