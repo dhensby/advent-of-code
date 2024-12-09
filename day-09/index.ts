@@ -61,10 +61,9 @@ export async function part2 (raw: string[]): Promise<string> {
     }
     return accum
   }, [])
-  const movedFileIds = new Set<number>()
   for (let readPointer = filesystem.length; readPointer > 0; readPointer -= 1) {
     const file = filesystem[readPointer]
-    if (!isFile(file) || movedFileIds.has(file.id)) {
+    if (!isFile(file)) {
       continue
     }
     for (let writePointer = 0; writePointer < readPointer; writePointer += 1) {
@@ -81,7 +80,6 @@ export async function part2 (raw: string[]): Promise<string> {
         // place the file on the disk
         filesystem.splice(writePointer, 0, { ...file })
       }
-      movedFileIds.add(file.id)
       // delete the old file
       delete (file as Partial<File>).id
       break
