@@ -1,4 +1,4 @@
-import { Coordinate, Grid } from '../utils'
+import { Coordinate, Grid, Step } from '../utils'
 
 export async function part1 (data: string[]): Promise<string> {
   const grid = new Grid(data.map((l) => l.split('')))
@@ -8,10 +8,10 @@ export async function part1 (data: string[]): Promise<string> {
     for (let i = 0; i < points.length; i += 1) {
       const start = points[i]
       for (const end of points.slice(i + 1)) {
-        const delta: [number, number] = [start[0] - end[0], start[1] - end[1]]
-        const candidates: Coordinate[] = [[end[0] - delta[0], end[1] - delta[1]] as Coordinate, [start[0] + delta[0], start[1] + delta[1]] as Coordinate]
+        const delta: Step = [start[0] - end[0], start[1] - end[1]]
+        const candidates: Coordinate[] = [grid.step(start, delta), grid.step(end, delta, true)]
         candidates.forEach(([row, col]) => {
-          if (row >= 0 && col >= 0 && row <= grid.maxRow && col <= grid.maxCol) {
+          if (grid.inBounds([row, col])) {
             antinodes.add(`${row},${col}`)
           }
         })
@@ -29,15 +29,15 @@ export async function part2 (data: string[]): Promise<string> {
     for (let i = 0; i < points.length; i += 1) {
       const start = points[i]
       for (const end of points.slice(i + 1)) {
-        const delta: [number, number] = [end[0] - start[0], end[1] - start[1]]
+        const delta: Step = [end[0] - start[0], end[1] - start[1]]
         let candidates: [Coordinate, Coordinate] = [start, end]
-        while (candidates.some(([row, col]) => row >= 0 && col >= 0 && row <= grid.maxRow && col <= grid.maxCol)) {
+        while (candidates.some((pos) => grid.inBounds(pos))) {
           candidates.forEach(([row, col]) => {
-            if (row >= 0 && col >= 0 && row <= grid.maxRow && col <= grid.maxCol) {
+            if (grid.inBounds([row, col])) {
               antinodes.add(`${row},${col}`)
             }
           })
-          candidates = [[candidates[0][0] - delta[0], candidates[0][1] - delta[1]] as Coordinate, [candidates[1][0] + delta[0], candidates[1][1] + delta[1]] as Coordinate]
+          candidates = [grid.step(candidates[0], delta, true), grid.step(candidates[1], delta)]
         }
       }
     }

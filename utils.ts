@@ -19,7 +19,7 @@ export class Grid {
     return [Math.floor(i / this.rowLength), i % this.rowLength]
   }
 
-  private inBounds (position: Coordinate, bounds?: [Coordinate, Coordinate]): boolean {
+  inBounds (position: Coordinate, bounds?: [Coordinate, Coordinate]): boolean {
     // if no bounds provided, assume the whole grid
     bounds ??= [[0, 0], [this.maxRow, this.maxCol]]
     return position[0] >= Math.min(bounds[0][0], bounds[1][0]) &&
