@@ -82,14 +82,16 @@ program.addCommand(
       const data = await findInputForDay(chosenDay.toString().padStart(2, '0'))
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const action = require(`./day-${chosenDay.toString().padStart(2, '0')}`) as { part1?: ((data: string[]) => Promise<string>), part2?: ((data: string[]) => Promise<string>) }
-      const results: { part1?: string, part2?: string } = {}
       if (action.part1 != null) {
-        results.part1 = await action.part1(data[0])
+        console.time('part1')
+        const res = await action.part1(data[0])
+        console.timeLog('part1', res)
       }
       if (action.part2 != null) {
-        results.part2 = await action.part2(data[data.length - 1])
+        console.time('part2')
+        const res = await action.part2(data[data.length - 1])
+        console.timeLog('part2', res)
       }
-      console.log(results)
     })
 )
 
