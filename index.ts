@@ -14,7 +14,7 @@ async function readFileLines (path: string): Promise<string[]> {
 }
 
 function validateDay (val: string): number {
-  const [, day] = val.match(/^day-([0-9]+)$/) ?? []
+  const [, day] = val.match(/^day-([0-9]+)$/) ?? [undefined, val]
   const intVal = parseInt(day, 10)
   if (Number.isNaN(intVal) || intVal.toString(10) !== day) {
     throw new InvalidArgumentError('day arg must be a number.')
