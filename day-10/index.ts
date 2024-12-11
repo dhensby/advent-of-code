@@ -71,5 +71,33 @@ export async function part1 (raw: string[]): Promise<string> {
 }
 
 export async function part2 (raw: string[]): Promise<string> {
-  return ''
+  const [grid, graph] = prepData(raw)
+  // it is a valid trail head only if is a 0 on the map and it has a neighbour of 1
+  const trailheads = grid.findAll('0')['0'].filter((coord) => {
+    return graph[grid.coord2point(coord)].some((n) => n !== null)
+  })
+  const valid: Coordinate[][] = []
+  // track all trailheads. On each step record all the valid next steps
+  // at the end, find all the unique final steps
+  for (const trail of trailheads) {
+    const heads = [trail]
+    // a trail can only go from 0 -> 9 but we are starting at 0
+    for (let i = 1; i <= 9; i += 1) {
+      // a trail could have many heads - we need to step along all of them
+      const len = heads.length
+      for (let h = 0; h < len; h += 1) {
+        const head = heads.shift()
+        if (head === undefined) throw new Error()
+        const point = grid.coord2point(head)
+        for (const dir in directions) {
+          // this is a valid next step
+          if (graph[point][dir] === i) {
+            heads.push(grid.step(head, directions[dir]))
+          }
+        }
+      }
+    }
+    valid.push(heads)
+  }
+  return valid.flat().length.toString(10)
 }
