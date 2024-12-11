@@ -14,7 +14,11 @@ export class Grid {
     this.grid = grid.flat()
   }
 
-  private point2coord (i: number): Coordinate | null {
+  coord2point ([row, col]: Coordinate): number {
+    return row * this.rowLength + col
+  }
+
+  point2coord (i: number): Coordinate | null {
     if (i < 0 || i >= this.grid.length) return null
     return [Math.floor(i / this.rowLength), i % this.rowLength]
   }
@@ -34,6 +38,10 @@ export class Grid {
 
   get maxCol (): number {
     return this.colLength - 1
+  }
+
+  valueAt (coord: Coordinate): string {
+    return this.grid[this.coord2point(coord)]
   }
 
   find (char: string): Coordinate | null {
