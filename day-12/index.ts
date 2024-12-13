@@ -11,7 +11,7 @@ const directions: [Step, Step, Step, Step, Step, Step, Step, Step] = [
   [-1, -1] // NW
 ]
 
-type Neighbours = [string | null, string | null, string | null, string | null]
+type Neighbours = [string | null, string | null, string | null, string | null, string | null, string | null, string | null, string | null]
 
 function prepData (raw: string[]): [Grid, Record<string, Array<[Coordinate, Neighbours]>>, Record<string, Coordinate[][]>] {
   const grid = new Grid(raw.map((r) => r.split('')))
@@ -27,12 +27,8 @@ function prepData (raw: string[]): [Grid, Record<string, Array<[Coordinate, Neig
         const neighbour = grid.inBounds(pos) ? grid.valueAt(pos) : null
         neighbours.push(val === neighbour ? val : null)
       }
-      // we only care about edges, so if there are more than 2 neighbours,
-      // we only care about the 2 on the same plain
       graph[val] ??= []
-      graph[val].push([[row, col], neighbours.filter((n, i) => {
-        return i % 2 === 0
-      }) as Neighbours])
+      graph[val].push([[row, col], neighbours as Neighbours])
     }
   }
   const visited = new Set<string>()
@@ -61,8 +57,8 @@ function prepData (raw: string[]): [Grid, Record<string, Array<[Coordinate, Neig
         }) ?? [undefined, []]
         // check all of its neighbours
         toCheck.push(...neighbours.reduce<Coordinate[]>((accum, neighbour, dir) => {
-          if (neighbour !== null) {
-            const pos = grid.step([row, col], directions[dir * 2])
+          if (dir % 2 === 0 && neighbour !== null) {
+            const pos = grid.step([row, col], directions[dir])
             if (!visited.has(pos.toString())) {
               accum.push(pos)
             }
@@ -90,7 +86,7 @@ export async function part1 (data: string[]): Promise<string> {
         // count how many neighbours are *not* the same veg
         const entry = graph[veg].find(([[row, col]]) => point[0] === row && point[1] === col)
         if (entry != null) {
-          return sum + entry[1].filter((v) => v === null).length
+          return sum + entry[1].filter((v, i) => i % 2 === 0 && v === null).length
         }
         return sum
       }, 0)
@@ -102,5 +98,100 @@ export async function part1 (data: string[]): Promise<string> {
 }
 
 export async function part2 (data: string[]): Promise<string> {
-  return ''
+  const [grid, graph, plots] = prepData(data)
+  // price is now number of sides * area
+  const totalPrice = Object.entries(plots).reduce((price, [veg, sections]) => {
+    return sections.reduce((plotPrice, plot) => {
+      const area = plot.length
+      // the number of sides is going to involve
+      // all the corner points - so find those
+      const corners = plot.reduce<Array<[Coordinate, Neighbours]>>((cornerPoints, point) => {
+        const entry = graph[veg].find(([[row, col]]) => row === point[0] && col === point[1])
+        if (entry == null) throw new Error()
+        const [, neighbours] = entry
+        if (neighbours.every((n, i) => i % 2 !== 0 || n === null)) {
+          cornerPoints.push(entry)
+          return cornerPoints
+        }
+        if (neighbours.every((n, i) => n !== null)) {
+          return cornerPoints
+        }
+        for (let i = 0; i < 8; i += 2) {
+          // are we on a corner? Can we come from the opposite direction and have a turn left or right
+          if (neighbours[(i + 4) % 8] !== null && ((neighbours[(i + 2) % 8] !== null && neighbours[(i + 3) % 8] === null) || (neighbours[(i + 6) % 8] !== null && neighbours[(i + 5) % 8] === null))) {
+            cornerPoints.push(entry)
+            break
+          } else if (neighbours[i] === null && neighbours[(i + 4) % 8] !== null && (neighbours[(i + 2) % 8] === null || neighbours[(i + 6) % 8] === null)) {
+            // dead end ahead
+            cornerPoints.push(entry)
+            break
+          }
+        }
+        return cornerPoints
+      }, []).sort((a, b) => {
+        const diff = a[1].filter((n) => n !== null).length - b[1].filter((n) => n !== null).length
+        if (diff === 0) {
+          return grid.coord2point(a[0]) - grid.coord2point(b[0])
+        }
+        return diff
+      })
+      let edges = 0
+      // paths is a LIFO queue - which allows us to process a single path, then move onto
+      // potential other paths to process (which may have been covered or not by the first one)
+      const paths: Array<[Coordinate, number]> = []
+      // store a list of points that we have entered (and the direction we entered from)
+      const visited = new Set<string>()
+      const visitedCorners = new Set()
+      do {
+        // find a starting point. We need a corner point *and* a direction to "enter" in
+        const corner = corners.find(([c, n]) => !visitedCorners.has(c.toString()) && n.some((n, i) => i % 2 === 0 && n !== null)) ?? corners[0]
+        const lastIndex = corner[1].filter((v, i) => i % 2 === 0).lastIndexOf(veg) * 2
+        const rotation = corner[1].filter((v, i) => i % 2 === 0 && v !== null).length === 1 ? 0 : 2
+        const initialDir = ((lastIndex < 0 ? 0 : lastIndex) + rotation) % 8
+        paths.push([corner[0], initialDir])
+        do {
+          const pos = paths.pop()
+          if (pos === undefined || visited.has(pos.toString())) {
+            continue
+          }
+          // we want to record all "exits" from a point
+          visited.add(pos.toString())
+          const [coord, dir] = pos
+          const [, neighbours] = corners.find(([c]) => c[0] === coord[0] && c[1] === coord[1]) ?? [coord, [null, null, null, null, null, null, null, null].map((v, i) => i === dir ? veg : null)]
+          let currentDir = dir
+          // do we have a split? ie: is there an option to turn left *ahead*
+          if (neighbours[(currentDir + 6) % 8] !== null && neighbours[(currentDir + 7) % 8] === null) {
+            // we put this point on the front of the queue so that it is processed *last*
+            paths.unshift([grid.step(coord, directions[(currentDir + 6) % 8]), (currentDir + 6) % 8])
+          }
+          // try to turn right
+          if (neighbours[(currentDir + 2) % 8] !== null && neighbours[(currentDir + 3) % 8] === null) {
+            edges += 1
+            // turn right
+            currentDir += 2
+            currentDir %= 8
+          } else if (neighbours[currentDir] === null) {
+            edges += 1
+            currentDir += 6
+            currentDir %= 8
+          }
+          // now we have turned do we have a split before we travel? ie: is there an option to turn left *ahead*
+          if (neighbours[(currentDir + 6) % 8] !== null && neighbours[(currentDir + 7) % 8] === null) {
+            // we put this point on the front of the queue so that it is processed *last*
+            paths.unshift([grid.step(coord, directions[(currentDir + 6) % 8]), (currentDir + 6) % 8])
+          }
+          // continue along the current path (if we can)
+          const point = neighbours[currentDir] === null ? coord : grid.travelFrom(coord, directions[currentDir], corners.map(([c]) => c))
+          const next = corners.find(([c]) => point[0] === c[0] && point[1] === c[1]) ?? corner
+          paths.push([next[0], currentDir])
+        } while (paths.length > 0)
+        visited.forEach((v) => {
+          visitedCorners.add(v.split(',', 2).toString())
+        })
+      } while (!corners.every(([c]) => visitedCorners.has(c.toString())))
+      // console.log(veg, {area, edges})
+      return plotPrice + (area * edges)
+    }, price)
+  }, 0)
+  return totalPrice.toString(10)
 }

@@ -9,18 +9,18 @@ export class Grid {
   private readonly colLength: number
   private readonly grid: string[]
   constructor (grid: string[][]) {
-    this.colLength = grid.length
-    this.rowLength = grid[0].length
+    this.colLength = grid[0].length
+    this.rowLength = grid.length
     this.grid = grid.flat()
   }
 
   coord2point ([row, col]: Coordinate): number {
-    return row * this.rowLength + col
+    return row * this.colLength + col
   }
 
   point2coord (i: number): Coordinate | null {
     if (i < 0 || i >= this.grid.length) return null
-    return [Math.floor(i / this.rowLength), i % this.rowLength]
+    return [Math.floor(i / this.colLength), i % this.colLength]
   }
 
   inBounds (position: Coordinate, bounds?: [Coordinate, Coordinate]): boolean {
@@ -75,13 +75,13 @@ export class Grid {
 
     let currentPosition = start
 
-    while (!destinations.some(([row, col]) => row === currentPosition[0] && col === currentPosition[1])) {
+    do {
       const candidate = this.step(currentPosition, direction)
       if (!this.inBounds(candidate)) {
         break
       }
       currentPosition = candidate
-    }
+    } while (!destinations.some(([row, col]) => row === currentPosition[0] && col === currentPosition[1]))
     return currentPosition
   }
 
@@ -100,7 +100,7 @@ export class Grid {
       })
     })
     this.grid.forEach((val, i) => {
-      const [row, col] = [Math.floor(i / this.colLength), i % this.rowLength]
+      const [row, col] = this.point2coord(i) ?? [0, 0]
       grid[row] ??= []
       grid[row][col] ??= val
     })
