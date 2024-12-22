@@ -37,7 +37,7 @@ function prepData (lines: string[]): Config[] {
 }
 
 export async function part1 (raw: string[]): Promise<number> {
-  const configs = prepData(raw)
+  const configs = prepData([...raw])
   const cost = configs.reduce((spent, config) => {
     const [aCount, bCount] = solve(config)
     if (aCount * 10 % 10 === 0 && bCount * 10 % 10 === 0) {
@@ -48,6 +48,14 @@ export async function part1 (raw: string[]): Promise<number> {
   return cost
 }
 
-export async function part2 (data: string[]): Promise<string> {
-  return ''
+export async function part2 (raw: string[]): Promise<number> {
+  const configs = prepData([...raw])
+  const cost = configs.reduce((spent, config) => {
+    const [aCount, bCount] = solve(config, 10000000000000)
+    if (aCount * 10 % 10 === 0 && bCount * 10 % 10 === 0) {
+      return spent + (aCount * 3) + bCount
+    }
+    return spent
+  }, 0)
+  return cost
 }
