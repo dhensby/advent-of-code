@@ -14,6 +14,10 @@ export class Grid {
     this.grid = grid.flat()
   }
 
+  replaceAt ([row, col]: Coordinate, char: string): void {
+    this.grid[this.coord2point([row, col])] = char
+  }
+
   coord2point ([row, col]: Coordinate): number {
     return row * this.colLength + col
   }
