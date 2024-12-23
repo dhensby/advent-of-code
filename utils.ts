@@ -85,9 +85,23 @@ export class Grid {
     return currentPosition
   }
 
-  step (start: Coordinate, step: Step, backwards = false): Coordinate {
+  step (start: Coordinate, step: Step, backwards = false, wrap = false): Coordinate {
     const increment = backwards ? [-step[0], -step[1]] : step
-    return [start[0] + increment[0], start[1] + increment[1]]
+    let row = start[0] + increment[0]
+    let col = start[1] + increment[1]
+    if (wrap) {
+      if (row > this.maxRow) {
+        row -= this.rowLength
+      } else if (row < 0) {
+        row = this.rowLength + row
+      }
+      if (col > this.maxCol) {
+        col -= this.colLength
+      } else if (col < 0) {
+        col = this.colLength + col
+      }
+    }
+    return [row, col]
   }
 
   draw (points?: Record<string, Coordinate[]>): string {
@@ -106,4 +120,9 @@ export class Grid {
     })
     return grid.map((row) => row.join('')).join('\n')
   }
+}
+
+export function createGridFromDimensions (rows: number, cols: number): Grid {
+  const lines = Array.from(Array(rows), () => Array.from(Array(cols), () => '.'))
+  return new Grid(lines)
 }
