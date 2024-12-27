@@ -67,6 +67,13 @@ export class Grid {
     }, Object.create(null))
   }
 
+  distance (start: Coordinate, end: Coordinate): number {
+    if (start[0] === end[0] || start[1] === end[1]) {
+      return Math.abs(start[0] - end[0]) + Math.abs(start[1] - end[1])
+    }
+    return Math.sqrt(Math.pow(start[0] - end[0], 2) + Math.pow(start[1] - end[1], 2))
+  }
+
   travelFrom (start: Coordinate, direction: Step, destinations?: Coordinate[]): Coordinate {
     destinations ??= []
     // we are being naive here and assuming that directions are only along one axis
